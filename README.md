@@ -51,3 +51,14 @@ No local build step is required for the current prototype.
 ## License
 
 Project-authored code and documentation will receive an explicit license once the ownership and distribution scope are decided. No license in this repository grants rights to the original *Impossible Creatures* game or its content.
+
+
+## RTS prototype controls and movement
+
+- Left-click selects a friendly creature; Shift-click adds or removes it; Ctrl+A selects all living friendly creatures.
+- Left-drag empty ground to box-select. Space-drag or middle-mouse drag pans the camera.
+- Choose **Compact**, **Line**, or **Column** in the battlefield toolbar, then right-click to issue a group movement order.
+- Units use deterministic grid-based A* routing around the prototype's marked rock obstacles. Blocked destinations are relocated to a nearby walkable point, and the simulation applies pairwise unit separation to reduce crowding.
+- A destination marker is shown for each unit with an active movement order. Moving units automatically engage nearby enemies while retaining their movement destination.
+
+The pathfinder is an initial static-obstacle implementation. It does not yet support dynamic obstacle maps, terrain costs, navmesh routing, advanced group steering, or guaranteed deadlock-free movement in dense formations.
