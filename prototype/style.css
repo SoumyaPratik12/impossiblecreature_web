@@ -1,0 +1,47 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0b1117;
+  color: #e8eef4;
+  font-synthesis: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(ellipse at top, #172635 0, #0b1117 55%); }
+button { font: inherit; }
+.app-shell { width: min(1440px, 100%); margin: 0 auto; padding: 28px clamp(16px, 3vw, 42px); }
+.topbar, .topbar-actions, .field-heading, .field-footer, .legend { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.topbar { margin-bottom: 24px; }
+.eyebrow { margin: 0 0 6px; color: #7db8d8; font-size: .7rem; font-weight: 800; letter-spacing: .16em; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2.2rem); letter-spacing: -.04em; }
+h2 { margin-bottom: 6px; font-size: 1.05rem; }
+h3 { margin-bottom: 12px; font-size: .9rem; }
+.status-pill { border: 1px solid #31566a; border-radius: 999px; padding: 8px 12px; color: #a9d9ec; font-size: .75rem; white-space: nowrap; }
+.game-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 18px; align-items: start; }
+.battlefield-panel, .control-panel { border: 1px solid #263744; border-radius: 14px; background: rgba(17, 27, 36, .94); box-shadow: 0 18px 50px #0003; }
+.battlefield-panel { padding: 18px; min-width: 0; }
+.field-heading { margin-bottom: 14px; }
+.field-heading p, .muted, .field-footer, .page-footer { color: #91a2af; font-size: .8rem; }
+.field-heading p { margin-bottom: 0; }
+.legend { justify-content: flex-end; color: #aab8c3; font-size: .72rem; }
+.legend span { white-space: nowrap; }
+.dot { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; }
+.dot-blue { background: #57b8e8; }.dot-red { background: #ed786d; }
+.canvas-wrap { overflow: hidden; border: 1px solid #31434d; border-radius: 9px; background: #15251f; }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 12 / 7; cursor: crosshair; }
+.field-footer { padding-top: 12px; }
+.control-panel { padding: 18px; }
+.control-panel > .muted { margin-bottom: 18px; }
+.control-group { display: grid; gap: 9px; }
+.button { min-height: 38px; padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; color: #edf5f9; cursor: pointer; font-size: .82rem; font-weight: 650; transition: filter .15s ease, transform .15s ease; }
+.button:hover { filter: brightness(1.12); }.button:active { transform: translateY(1px); }.button:focus-visible { outline: 2px solid #8dd8ff; outline-offset: 2px; }
+.button-primary { background: #176b8e; border-color: #328caf; }.button-secondary { background: #263844; border-color: #3b505e; }.button-quiet { background: transparent; border-color: #3b505e; color: #b7c4cd; }
+.stats-card, .help-card { margin-top: 18px; padding: 14px; border: 1px solid #2b3c47; border-radius: 10px; background: #111c24; }
+.stats-card p { margin-bottom: 8px; font-size: .82rem; }
+.health-track { height: 7px; overflow: hidden; border-radius: 9px; background: #35424a; }
+.health-fill { width: 0; height: 100%; border-radius: inherit; background: #5fc58b; transition: width .15s ease; }
+.help-card ul { margin: 0; padding-left: 17px; color: #aab8c3; font-size: .76rem; line-height: 1.65; }
+.disclaimer { margin: 16px 0 0; color: #8496a3; font-size: .68rem; line-height: 1.5; }
+.page-footer { padding: 18px 4px; text-align: center; }
+@media (max-width: 900px) { .game-layout { grid-template-columns: 1fr; }.control-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }.control-panel > h2, .control-panel > .muted, .disclaimer { grid-column: 1 / -1; }.control-panel > .muted { margin-bottom: 0; }.control-group, .stats-card, .help-card { margin-top: 0; } }
+@media (max-width: 560px) { .app-shell { padding: 18px 12px; }.topbar { align-items: flex-start; flex-direction: column; }.topbar-actions { width: 100%; justify-content: space-between; }.battlefield-panel { padding: 10px; }.field-heading { align-items: flex-start; flex-direction: column; }.legend { justify-content: flex-start; }.control-panel { display: block; }.control-panel > .muted { margin-bottom: 14px; }.control-group, .stats-card, .help-card { margin-top: 14px; }.field-footer { align-items: flex-start; flex-direction: column; gap: 5px; } }
