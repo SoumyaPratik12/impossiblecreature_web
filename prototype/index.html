@@ -32,7 +32,7 @@
         <div class="field-heading">
           <div>
             <h2>Test arena</h2>
-            <p>Select a unit, right-click to move, Shift + drag to pan, and scroll to zoom.</p>
+            <p>Drag a blue unit to move it directly, or select it and right-click a destination. Shift + drag to pan; scroll to zoom.</p>
           </div>
           <div class="legend" aria-label="Team legend">
             <span><i class="dot dot-blue"></i> Player</span>
@@ -62,14 +62,6 @@
           <select id="head-select"><option value="wolf">Wolf · attack</option><option value="bear">Bear · armour</option><option value="eagle">Eagle · speed</option></select>
           <p id="creature-preview" class="muted">Wolf body / Wolf head</p>
         </div>
-        <div class="creature-lab">
-          <h3>Creature lab</h3>
-          <label for="body-select">Body</label>
-          <select id="body-select"><option value="wolf">Wolf · balanced</option><option value="bear">Bear · tank</option><option value="eagle">Eagle · fast</option></select>
-          <label for="head-select">Head</label>
-          <select id="head-select"><option value="wolf">Wolf · attack</option><option value="bear">Bear · armour</option><option value="eagle">Eagle · speed</option></select>
-          <p id="creature-preview" class="muted">Wolf body / Wolf head</p>
-        </div>
         <div class="control-group">
           <button id="spawn-button" class="button button-primary" type="button">Spawn composed creature</button>
           <button id="save-button" class="button button-secondary" type="button">Save state</button>
@@ -85,7 +77,7 @@
         <div class="help-card">
           <h3>How to play</h3>
           <ul>
-            <li>Left-click a blue unit to select it.</li>
+            <li>Left-click a blue unit to select it; drag it to reposition directly.</li>
             <li>Right-click the arena to issue a move order.</li>
             <li>Units automatically engage nearby opponents.</li>
             <li>Shift + drag to pan the camera.</li>
