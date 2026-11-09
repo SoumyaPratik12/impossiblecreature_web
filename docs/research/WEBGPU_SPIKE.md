@@ -2,33 +2,40 @@
 
 ## Objective
 
-Validate the browser WebGPU rendering lifecycle in isolation before replacing any part of the RTS Canvas 2D renderer.
+Validate the WebGPU rendering lifecycle and progressively move the browser RTS prototype's terrain rendering to the GPU while retaining a Canvas 2D fallback for units and unsupported browsers.
 
-## Test page
+## Integrated terrain renderer
 
-Open `prototype/webgpu-test.html` from a local static server or the deployed GitHub Pages site. The page:
+The main prototype now attempts to initialize prototype/src/webgpu-renderer.js:
 
-1. Checks whether `navigator.gpu` exists.
-2. Requests a GPU adapter and device.
-3. Configures a WebGPU canvas context using the preferred canvas format.
-4. Compiles a small WGSL vertex/fragment shader.
-5. Creates a render pipeline and submits one triangle draw call.
-6. Reports initialization errors or device loss in the page.
+1. Requests a WebGPU adapter and device.
+2. Configures a dedicated GPU canvas layered beneath the transparent Canvas 2D unit canvas.
+3. Compiles a WGSL full-screen terrain shader.
+4. Sends camera position, zoom, viewport size, and world dimensions through a uniform buffer.
+5. Generates procedural ground variation, a winding path, grid lines, and world boundaries in the fragment shader.
+6. Submits the terrain draw each frame using the current camera state.
+
+The Canvas 2D layer continues to render units, health bars, selection markers, and UI overlays. If WebGPU initialization fails or the device is lost, the prototype switches back to its Canvas 2D terrain renderer.
+
+## Isolated test page
+
+Open prototype/webgpu-test.html from the deployed GitHub Pages site. The page independently checks navigator.gpu, requests an adapter and device, configures a WebGPU canvas, compiles a WGSL shader, creates a render pipeline, submits a triangle draw call, and reports errors or device loss.
 
 ## Acceptance criteria
 
-- On a WebGPU-capable browser/device, the page reports a successful triangle render.
-- On unsupported browsers or unavailable adapters, it displays a readable status rather than breaking the main prototype.
-- The main RTS prototype continues to use Canvas 2D until the renderer is proven and a migration plan is reviewed.
+- On a WebGPU-capable browser/device, the main prototype displays procedural terrain through WebGPU and keeps units interactive on the Canvas 2D overlay.
+- On unsupported browsers or unavailable adapters, the main prototype remains playable using Canvas 2D.
+- The isolated WebGPU page reports a successful triangle render where supported.
+- CI checks JavaScript syntax and repository wiring; it does not replace real browser/GPU testing.
 
-## Limitations
+## Current limitations
 
-This spike does not yet implement sprites, textures, camera transforms, batching, terrain, lighting, animation, or GPU-side simulation. It does not establish compatibility with the original game's Direct3D renderer.
+The integrated renderer is an early procedural terrain pass, not a production renderer. It does not yet use terrain textures, sprite atlases, shadows, lighting, post-processing, GPU-side unit simulation, or instanced creature meshes. Its terrain path is a shader approximation. It does not establish compatibility with the original game's Direct3D renderer.
 
 ## Next renderer milestones
 
-1. Add a resize-aware surface configuration.
-2. Introduce a camera uniform and orthographic world coordinates.
-3. Upload one generated placeholder texture and render a textured quad.
-4. Add instanced unit sprites and measure draw-call behavior.
-5. Compare results against Canvas 2D on defined desktop and mobile devices.
+1. Add device-pixel-ratio-aware canvas resizing and surface reconfiguration.
+2. Add a proper orthographic camera uniform and culling.
+3. Introduce texture-backed terrain materials and terrain layers.
+4. Add instanced unit/creature geometry with per-instance transforms and team colors.
+5. Profile GPU and Canvas 2D paths on defined desktop and mobile devices.
