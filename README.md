@@ -2,7 +2,7 @@
 
 This repository tracks a staged effort to investigate and build a browser-playable experience inspired by the 2003 real-time strategy game *Impossible Creatures*.
 
-> **Current status:** a deployed original RTS sandbox with camera controls, procedural WebGPU terrain, GPU-instanced units, and a configurable creature stat-composition prototype. This is not yet a port of the original game.
+> **Current status:** a deployed original RTS sandbox using Canvas 2D for the active terrain and unit scene, with camera controls, basic movement/combat simulation, and a configurable creature stat-composition prototype. WebGPU remains an isolated experiment pending browser validation. This is not yet a port of the original game.
 
 ## Project goals
 
@@ -24,7 +24,7 @@ Until authorized game files and reliable technical documentation are available, 
 - `docs/architecture/` — proposed runtime architecture.
 - `docs/research/` — feasibility research and unknowns.
 - `docs/decisions/` — architecture decision records.
-- `prototype/` — original browser RTS sandbox with WebGPU terrain and instanced unit rendering, Canvas 2D interaction overlays, and a body/head creature stat composer.
+- `prototype/` — original browser RTS sandbox using Canvas 2D for the active scene, a separate WebGPU experiment, and a body/head creature stat composer.
 - `tests/` — repository and prototype checks.
 - `.github/workflows/` — automated validation.
 
@@ -38,7 +38,7 @@ No local build step is required for the current prototype.
 
 1. **Foundation:** repository structure, browser prototype, and automated checks.
 2. **Runtime spike:** compile a small original C/C++ module to WebAssembly with Emscripten and define the JavaScript/WASM boundary.
-3. **Rendering spike:** implemented an experimental WebGPU procedural terrain pass with a Canvas 2D fallback; next add texture-backed materials, richer creature geometry, and deeper squad tactics.
+3. **Rendering spike:** Canvas 2D is the active, validated rendering path. WebGPU terrain and instanced-unit rendering remain isolated experiments until tested across real browsers and devices.
 4. **Systems research:** document original-game platform dependencies and assess compatibility/reimplementation options using legitimately obtained materials.
 5. **Vertical slice:** only after feasibility and rights are established, implement a small end-to-end gameplay slice.
 
