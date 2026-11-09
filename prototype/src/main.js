@@ -140,7 +140,7 @@
 
   canvas.addEventListener("pointerdown",(event)=>{
     if(event.button===1 || (event.button===0&&(event.shiftKey||spaceDown))){
-      panPointer={id:event.pointerId,x:event.clientX,y:event.clientY};
+      panPointer={id:event.pointerId,x:event.clientX,y:event.clientY,button:event.button};
       canvas.setPointerCapture(event.pointerId); event.preventDefault(); return;
     }
     if(event.button!==0)return;
@@ -169,7 +169,7 @@
     }
   });
   function finishPointer(event){
-    if(panPointer&&panPointer.id===event.pointerId)panPointer=null;
+    if(panPointer&&panPointer.id===event.pointerId){if(panPointer.button===0)suppressClick=true;panPointer=null;}
     if(dragState&&dragState.id===event.pointerId){suppressClick=dragState.moved;dragState=null;}
   }
   canvas.addEventListener("pointerup",finishPointer);
