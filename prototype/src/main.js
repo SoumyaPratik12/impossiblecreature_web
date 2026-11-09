@@ -84,7 +84,7 @@
   function hitPlayer(p){return [...units].reverse().find(u=>u.team==="player"&&Math.hypot(u.x-p.x,u.y-p.y)<=u.radius+9)||null;}
 
   canvas.addEventListener("pointerdown",(event)=>{
-    if(event.button===1 || (event.button===0&&(event.shiftKey||spaceDown))){
+    if(event.button===1 || (event.button===0&&spaceDown)){
       panPointer={id:event.pointerId,x:event.clientX,y:event.clientY,button:event.button};
       canvas.setPointerCapture(event.pointerId); event.preventDefault(); return;
     }
