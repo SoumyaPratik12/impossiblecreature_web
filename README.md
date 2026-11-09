@@ -58,7 +58,12 @@ Project-authored code and documentation will receive an explicit license once th
 - Left-click selects a friendly creature; Shift-click adds or removes it; Ctrl+A selects all living friendly creatures.
 - Left-drag empty ground to box-select. Space-drag or middle-mouse drag pans the camera.
 - Choose **Compact**, **Line**, or **Column** in the battlefield toolbar, then right-click to issue a group movement order.
-- Units use deterministic grid-based A* routing around the prototype's marked rock obstacles. Blocked destinations are relocated to a nearby walkable point, and the simulation applies pairwise unit separation to reduce crowding.
+- Units use deterministic grid-based A* routing around marked rock obstacles. Blocked destinations are relocated to nearby walkable points; routes are recalculated when the obstacle map changes; and collision resolution checks both unit spacing and terrain before applying separation. Formation offsets rotate with the direction of travel.
 - A destination marker is shown for each unit with an active movement order. Moving units automatically engage nearby enemies while retaining their movement destination.
 
-The pathfinder is an initial static-obstacle implementation. It does not yet support dynamic obstacle maps, terrain costs, navmesh routing, advanced group steering, or guaranteed deadlock-free movement in dense formations.
+The pathfinder supports changing circular obstacle maps and local collision-safe separation, and has automated 10-, 20-, and 50-unit stress coverage. It remains a grid-based prototype: terrain-weighted costs, navmesh routing, advanced velocity-obstacle steering, and formal deadlock-free guarantees in narrow passages are not implemented.
+
+
+### Movement stress coverage
+
+Automated simulation tests cover 10-, 20-, and 50-unit formation orders, obstacle-safe movement, dynamic obstacle insertion and route replanning, and crowded-unit separation. Browser interaction tests verify the formation selector and right-click group-order flow. These tests establish regression coverage for the current prototype; they are not a substitute for profiling on target hardware or a full RTS navigation benchmark.
