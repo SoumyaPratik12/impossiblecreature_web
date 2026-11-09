@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#101820">
   <meta name="description" content="An original browser-based RTS sandbox prototype.">
   <title>Impossible Creatures — Browser Prototype</title>
-  <link rel="stylesheet" href="./style.css?v=20261110-5">
-  <script src="./src/world-view.js?v=20261110-5" defer></script>
-  <script src="./src/game-core.js?v=20261110-5" defer></script>
-  <script src="./src/creature-catalog.js?v=20261110-5" defer></script>
-  <script src="./src/webgpu-renderer.js?v=20261110-5" defer></script>
-  <script src="./src/main.js?v=20261110-5" defer></script>
+  <link rel="stylesheet" href="./style.css?v=20261110-6">
+  <script src="./src/world-view.js?v=20261110-6" defer></script>
+  <script src="./src/game-core.js?v=20261110-6" defer></script>
+  <script src="./src/creature-catalog.js?v=20261110-6" defer></script>
+  <script src="./src/webgpu-renderer.js?v=20261110-6" defer></script>
+  <script src="./src/main.js?v=20261110-6" defer></script>
 
 </head>
 <body>
@@ -40,7 +40,7 @@
             <span><i class="dot dot-red"></i> Opponent</span>
           </div>
         </div>
-        <div class="camera-tools" aria-label="Camera controls"><button id="zoom-in" class="button button-secondary" type="button" title="Zoom in">+</button><button id="zoom-out" class="button button-secondary" type="button" title="Zoom out">−</button><button id="reset-view" class="button button-secondary" type="button">Reset view</button><span>Pan: Shift + drag or middle mouse · Zoom: wheel</span></div>\n        <div class="canvas-wrap">
+        <div class="camera-tools" aria-label="Camera controls"><button id="zoom-in" class="button button-secondary" type="button" title="Zoom in">+</button><button id="zoom-out" class="button button-secondary" type="button" title="Zoom out">−</button><button id="reset-view" class="button button-secondary" type="button">Reset view</button><span>Select: left click · Add/remove: Shift + click · Select all: Ctrl+A · Deselect: click empty ground or Esc · Move: right click · Pan: Shift + drag or middle mouse · Zoom: wheel</span></div>\n        <div class="canvas-wrap">
           <canvas id="terrain-gpu" width="960" height="560" aria-hidden="true"></canvas>
           <canvas id="battlefield" width="960" height="560" aria-label="Top-down RTS battlefield">
             Your browser does not support the canvas element.
