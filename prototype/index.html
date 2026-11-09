@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="An original browser-based RTS sandbox prototype.">
+  <title>Impossible Creatures — Browser Prototype</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./src/main.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">BROWSER RUNTIME EXPERIMENT</p>
+        <h1>Creature Command</h1>
+      </div>
+      <div class="topbar-actions">
+        <span id="runtime-status" class="status-pill">Canvas 2D · Ready</span>
+        <button id="pause-button" class="button button-secondary" type="button">Pause</button>
+      </div>
+    </header>
+
+    <section class="game-layout" aria-label="Game prototype">
+      <div class="battlefield-panel">
+        <div class="field-heading">
+          <div>
+            <h2>Test arena</h2>
+            <p>Select a unit, then right-click to move it.</p>
+          </div>
+          <div class="legend" aria-label="Team legend">
+            <span><i class="dot dot-blue"></i> Player</span>
+            <span><i class="dot dot-red"></i> Opponent</span>
+          </div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="battlefield" width="960" height="560" aria-label="Top-down RTS battlefield">
+            Your browser does not support the canvas element.
+          </canvas>
+        </div>
+        <div class="field-footer">
+          <span id="selection-status" aria-live="polite">No unit selected</span>
+          <span id="game-status" aria-live="polite">Simulation running</span>
+        </div>
+      </div>
+
+      <aside class="control-panel">
+        <h2>Command</h2>
+        <p class="muted">Prototype controls</p>
+        <div class="control-group">
+          <button id="spawn-button" class="button button-primary" type="button">Spawn player unit</button>
+          <button id="save-button" class="button button-secondary" type="button">Save state</button>
+          <button id="load-button" class="button button-secondary" type="button">Load state</button>
+          <button id="reset-button" class="button button-quiet" type="button">Reset arena</button>
+        </div>
+        <div class="stats-card">
+          <h3>Selected unit</h3>
+          <p id="unit-name">—</p>
+          <div class="health-track"><div id="health-fill" class="health-fill"></div></div>
+          <p id="unit-health" class="muted">No unit selected</p>
+        </div>
+        <div class="help-card">
+          <h3>How to play</h3>
+          <ul>
+            <li>Left-click a blue unit to select it.</li>
+            <li>Right-click the arena to issue a move order.</li>
+            <li>Units automatically engage nearby opponents.</li>
+            <li>Use Save state to store a local prototype snapshot.</li>
+          </ul>
+        </div>
+        <p class="disclaimer">Original prototype only. Not an executable port of the commercial game.</p>
+      </aside>
+    </section>
+    <footer class="page-footer">Development sandbox · Original placeholder visuals and simulation</footer>
+  </main>
+</body>
+</html>
