@@ -73,3 +73,28 @@ test("camera panning changes the camera without leaving world bounds",()=>{
  assert.ok(after.x<before.x&&after.y<before.y);
  assert.ok(after.x>=0&&after.x<=1600&&after.y>=0&&after.y<=900);
 });
+
+
+test("attack-move engages nearby enemies without discarding the destination",()=>{
+ const s={nextId:3,units:[
+  {...core.createUnit("player",400,400,catalog.compose("bear","bear"),1,world),x:400,y:400},
+  {...core.createUnit("enemy",455,400,catalog.compose("wolf","wolf"),2,world),x:455,y:400}
+ ]};
+ const u=s.units[0],enemy=s.units[1],destination={x:800,y:400};
+ core.issueMove(u,destination.x,destination.y,world);
+ const before=enemy.hp;for(let i=0;i<120;i++)core.update(s,1/60,world);
+ assert.ok(enemy.hp<before,"moving unit should attack an enemy in engagement range");
+ assert.equal(u.moveOrder,true,"attack-move should retain its destination");
+ assert.equal(u.targetX,destination.x);
+});
+test("simulation rejects invalid time steps",()=>{
+ const s=core.createInitialState(catalog,world);
+ assert.throws(()=>core.update(s,-0.1,world));
+ assert.throws(()=>core.update(s,1.1,world));
+});
+test("group movement destinations can be assigned without stacking units",()=>{
+ const s=core.createInitialState(catalog,world),group=s.units.filter(u=>u.team==="player");
+ const cols=Math.ceil(Math.sqrt(group.length)),spacing=54,rows=Math.ceil(group.length/cols),x=900,y=450;
+ group.forEach((u,i)=>core.issueMove(u,x-((Math.min(cols,group.length)-1)*spacing)/2+(i%cols)*spacing,y-((rows-1)*spacing)/2+Math.floor(i/cols)*spacing,world));
+ assert.equal(new Set(group.map(u=>u.targetX+":"+u.targetY)).size,group.length);
+});
