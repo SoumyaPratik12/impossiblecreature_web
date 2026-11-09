@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <title>WebGPU Renderer Spike</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./src/webgpu-test.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">GRAPHICS BACKEND EXPERIMENT</p>
+        <h1>WebGPU Renderer Spike</h1>
+      </div>
+      <a class="button button-secondary" href="./index.html">Back to RTS prototype</a>
+    </header>
+    <section class="battlefield-panel">
+      <div class="field-heading">
+        <div>
+          <h2>Triangle pipeline test</h2>
+          <p>Creates a WebGPU device, shader module, render pipeline, and command submission.</p>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="webgpu-canvas" width="960" height="560" aria-label="WebGPU triangle output">
+          Your browser does not support canvas.
+        </canvas>
+      </div>
+      <div class="field-footer">
+        <span id="webgpu-status" role="status" aria-live="polite">Checking WebGPU support…</span>
+      </div>
+      <p class="disclaimer">This is an isolated graphics API test. The RTS prototype continues to render with Canvas 2D.</p>
+    </section>
+  </main>
+</body>
+</html>
