@@ -25,16 +25,19 @@
     resetView: el("reset-view")
   };
   const STORAGE_KEY = "creature-command-prototype-v3";
-  let units = [], selectedId = null, paused = false, nextId = 1;
+  let units = [], selectedIds = new Set(), paused = false, nextId = 1;
   let lastTime = 0, accumulator = 0;
   const STEP = 1 / 60, MAX_FRAME = 0.1;
   let panPointer = null, dragState = null, suppressClick = false, spaceDown = false;
 
   function createUnit(team,x,y,blueprint) { return core.createUnit(team,x,y,blueprint||catalog.compose("wolf","wolf"),nextId++,WORLD); }
-  function reset() { const initial=core.createInitialState(catalog,WORLD);units=initial.units;nextId=initial.nextId;selectedId=null;paused=false;ui.pause.textContent="Pause";updatePanel(); }
-  function selectedUnit() { return units.find((u) => u.id === selectedId) || null; }
+  function reset() { const initial=core.createInitialState(catalog,WORLD);units=initial.units;nextId=initial.nextId;selectedIds.clear();paused=false;ui.pause.textContent="Pause";updatePanel(); }
+  function selectedUnit() { return units.find(u=>selectedIds.has(u.id))||null; }
+  function selectedUnits(){return units.filter(u=>selectedIds.has(u.id));}
+  function selectOnly(u){selectedIds.clear();if(u)selectedIds.add(u.id);}
+  function issueMoveSelection(x,y){const a=selectedUnits();if(!a.length)return;const dx=x-a[0].x,dy=y-a[0].y;for(const u of a)issueMove(u,u.x+dx,u.y+dy);ui.status.textContent="Move order issued to "+a.length+" creature(s)";draw();}
   function issueMove(unit,x,y) { core.issueMove(unit,x,y,WORLD); }
-  function update(dt) { const simulation={units,nextId};core.update(simulation,dt,WORLD);units=simulation.units;if(selectedId!==null&&!selectedUnit())selectedId=null;updatePanel(); }
+  function update(dt) { const s={units,nextId};core.update(s,dt,WORLD);units=s.units;for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);updatePanel(); }
   function draw() {
     ctx.clearRect(0,0,W,H);
     worldView.begin(ctx,W,H);
@@ -44,7 +47,7 @@
         ctx.beginPath(); ctx.fillStyle=u.team==="player"?"#55b9e8":"#e8796e"; ctx.arc(u.x,u.y,u.radius,0,Math.PI*2); ctx.fill();
         ctx.lineWidth=1.5; ctx.strokeStyle="rgba(255,255,255,.65)"; ctx.stroke();
       }
-      if (u.id===selectedId) {
+      if (selectedIds.has(u.id)) {
         ctx.beginPath(); ctx.arc(u.x,u.y,u.radius+6,0,Math.PI*2);
         ctx.lineWidth=2.5; ctx.strokeStyle="#fff2a8"; ctx.stroke();
       }
@@ -52,20 +55,15 @@
       ctx.fillStyle=u.team==="player"?"#6de0a1":"#f2a08f";
       ctx.fillRect(u.x-17,u.y-u.radius-12,34*Math.max(0,u.hp/u.maxHp),5);
     }
-    const selected=selectedUnit();
-    if (selected && selected.moveOrder) {
-      ctx.save(); ctx.strokeStyle="rgba(255,242,168,.9)"; ctx.lineWidth=2;
-      ctx.setLineDash([5,5]); ctx.beginPath(); ctx.arc(selected.targetX,selected.targetY,12,0,Math.PI*2); ctx.stroke();
-      ctx.setLineDash([]); ctx.restore();
-    }
+    for(const selected of selectedUnits())if(selected.moveOrder){ctx.save();ctx.strokeStyle="rgba(255,242,168,.9)";ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(selected.targetX,selected.targetY,12,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
     worldView.end(ctx);
     worldView.drawOverlay(ctx,W,H);
   }
   function updatePanel() {
-    const u=selectedUnit();
-    ui.selection.textContent=u?`Selected: ${u.team} unit #${u.id}`:"No unit selected";
-    ui.name.textContent=u?(u.team==="player"?"Player ":"Opponent ")+u.body+"-"+u.head+" #"+u.id:"—";
-    ui.health.textContent=u?Math.ceil(u.hp)+" / "+u.maxHp+" HP · Speed "+u.speed+" · Attack "+u.attack+" · Defence "+u.defense:"Select a player creature";
+    const selected=selectedUnits(),u=selected[0];
+    ui.selection.textContent=selected.length>1?"Selected: "+selected.length+" player creatures":u?"Selected: "+u.team+" unit #"+u.id:"No unit selected";
+    ui.name.textContent=selected.length>1?selected.length+" creatures selected":u?(u.team==="player"?"Player ":"Opponent ")+u.body+"-"+u.head+" #"+u.id:"—";
+    ui.health.textContent=selected.length>1?selected.length+" creatures ready for group commands":u?Math.ceil(u.hp)+" / "+u.maxHp+" HP · Speed "+u.speed+" · Attack "+u.attack+" · Defence "+u.defense:"Select a player creature";
     ui.healthFill.style.width=u?`${Math.max(0,u.hp/u.maxHp)*100}%`:"0%";
     ui.status.textContent="Player: "+units.filter(x=>x.team==="player").length+" · Opponent: "+units.filter(x=>x.team==="enemy").length;
     if(ui.preview){const c=catalog.compose(ui.body.value,ui.head.value);ui.preview.textContent=c.name+" · "+c.maxHp+" HP · "+c.speed+" speed · "+c.attack+" attack · "+c.defense+" defence";}
@@ -81,7 +79,7 @@
     if(event.button!==0)return;
     const p=point(event), hit=hitPlayer(p);
     if(hit){
-      selectedId=hit.id;
+      if(event.shiftKey){if(selectedIds.has(hit.id))selectedIds.delete(hit.id);else selectedIds.add(hit.id);}else selectOnly(hit);
       dragState={id:event.pointerId,unit:hit,offsetX:hit.x-p.x,offsetY:hit.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
       canvas.setPointerCapture(event.pointerId); updatePanel(); draw();
     }
@@ -112,22 +110,18 @@
   canvas.addEventListener("lostpointercapture",finishPointer);
   canvas.addEventListener("click",(event)=>{
     if(suppressClick){suppressClick=false;return;}
-    const p=point(event), hit=hitPlayer(p);
-    if(hit){selectedId=hit.id;updatePanel();draw();return;}
-    const selected=selectedUnit();
-    if(selected){issueMove(selected,p.x,p.y);ui.status.textContent="Move order issued";draw();}
-    else {selectedId=null;updatePanel();draw();}
+    const hit=hitPlayer(point(event));
+    if(hit){if(event.shiftKey){if(selectedIds.has(hit.id))selectedIds.delete(hit.id);else selectedIds.add(hit.id);}else selectOnly(hit);}
+    else if(!event.shiftKey)selectOnly(null);
+    updatePanel();draw();
   });
-  canvas.addEventListener("contextmenu",(event)=>{
-    event.preventDefault(); const selected=selectedUnit(); if(!selected)return;
-    const p=point(event); issueMove(selected,p.x,p.y); ui.status.textContent="Move order issued"; draw();
-  });
+  canvas.addEventListener("contextmenu",(event)=>{event.preventDefault();if(!selectedIds.size)return;const p=point(event);issueMoveSelection(p.x,p.y);});
   canvas.addEventListener("wheel",(event)=>{
     event.preventDefault(); const rect=canvas.getBoundingClientRect();
     worldView.zoomAt((event.clientX-rect.left)*W/rect.width,(event.clientY-rect.top)*H/rect.height,event.deltaY,W,H);
     draw();
   },{passive:false});
-  window.addEventListener("keydown",(e)=>{if(e.code==="Space"&&!e.repeat){spaceDown=true;if(e.target===document.body)e.preventDefault();}});
+  window.addEventListener("keydown",(e)=>{if(e.code==="Space"&&!e.repeat){spaceDown=true;if(e.target===document.body)e.preventDefault();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a"&&!["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)){e.preventDefault();selectedIds=new Set(units.filter(u=>u.team==="player").map(u=>u.id));updatePanel();draw();}if(e.key==="Escape"){selectOnly(null);updatePanel();draw();}});
   window.addEventListener("keyup",(e)=>{if(e.code==="Space")spaceDown=false;});
   window.addEventListener("blur",()=>{spaceDown=false;panPointer=null;dragState=null;});
 
@@ -141,10 +135,10 @@
     const position=core.findSpawn(units,Math.random()*WORLD.width,Math.random()*WORLD.height,blueprint.radius,WORLD);
     if(!position){ui.status.textContent="No safe spawn location available";return;}
     const u=createUnit("player",position.x,position.y,blueprint);
-    units.push(u);selectedId=u.id;updatePanel();draw();
+    units.push(u);selectOnly(u);updatePanel();draw();
   });
   ui.save.addEventListener("click",()=>{
-    try { const saved=core.snapshot({units,nextId},worldView.cameraState());saved.selectedId=selectedId;localStorage.setItem(STORAGE_KEY,JSON.stringify(saved));ui.status.textContent="Saved in this browser"; }
+    try { const saved=core.snapshot({units,nextId},worldView.cameraState());saved.selectedIds=[...selectedIds];localStorage.setItem(STORAGE_KEY,JSON.stringify(saved));ui.status.textContent="Saved in this browser"; }
     catch(error) { ui.status.textContent="Save failed: "+error.message; }
   });
   ui.load.addEventListener("click",()=>{
@@ -152,7 +146,7 @@
       const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
       const restored=core.validateSave(saved,WORLD,catalog);
       units=restored.units;nextId=restored.nextId;
-      selectedId=units.some(u=>u.id===saved.selectedId&&u.team==="player")?saved.selectedId:null;
+      selectedIds=new Set(Array.isArray(saved.selectedIds)?saved.selectedIds.filter(id=>units.some(u=>u.id===id&&u.team==="player")):[]);
       worldView.setCamera(restored.camera,W,H);updatePanel();ui.status.textContent="Save loaded";draw();
     } catch(error) { ui.status.textContent="No valid save found · "+error.message; }
   });
