@@ -146,7 +146,7 @@ test("blocked move destinations are relocated to the nearest walkable point",()=
 test("10, 20 and 50 unit formations receive unique walkable destinations",()=>{
  for(const count of [10,20,50]){
   const group=Array.from({length:count},(_,i)=>({
-   ...core.createUnit("player",100+(i%10)*42,90+Math.floor(i/10)*48,catalog.compose("wolf","wolf"),i+1,world)
+   ...core.createUnit("player",90+(i%10)*40,55+Math.floor(i/10)*34,catalog.compose("wolf","wolf"),i+1,world)
   }));
   const assigned=core.issueFormationMove(group,920,450,world,"compact",core.DEFAULT_OBSTACLES);
   assert.equal(assigned.length,count);
@@ -178,7 +178,7 @@ test("newly introduced obstacles trigger route replanning",()=>{
  assert.ok(Math.hypot(u.x-destination.x,u.y-destination.y)<12,"unit should route around newly added obstacle");
 });
 test("crowded units separate without being pushed into rocks",()=>{
- const obstacles=[{x:600,y:450,radius:70}];
+ const obstacles=[{x:700,y:450,radius:70}];
  const group=Array.from({length:12},(_,i)=>({
   ...core.createUnit("player",520+(i%4)*8,380+Math.floor(i/4)*8,catalog.compose("wolf","wolf"),i+1,world)
  }));
