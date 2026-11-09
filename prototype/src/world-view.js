@@ -116,6 +116,8 @@
     clampCamera(width, height);
   }
 
+  function cameraState() { return { x: camera.x, y: camera.y, zoom: camera.zoom }; }
+
   function drawOverlay(ctx, width, height) {
     ctx.save();
     ctx.fillStyle = "rgba(7, 14, 17, .72)";
@@ -127,6 +129,6 @@
   }
 
   window.CreatureWorldView = {
-    world, begin, end, drawTerrain, screenToWorld, panBy, zoomAt, resetCamera
+    world, begin, end, drawTerrain, screenToWorld, panBy, zoomAt, resetCamera, cameraState
   };
 })();
