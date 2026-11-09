@@ -36,6 +36,7 @@ def main() -> int:
     webgpu_js = (ROOT / "prototype/src/webgpu-test.js").read_text(encoding="utf-8")
     world_js = (ROOT / "prototype/src/world-view.js").read_text(encoding="utf-8")
     gpu_js = (ROOT / "prototype/src/webgpu-renderer.js").read_text(encoding="utf-8")
+    css = (ROOT / "prototype/style.css").read_text(encoding="utf-8")
 
     if 'id="battlefield"' not in html:
         print("Prototype canvas element not found")
@@ -48,6 +49,9 @@ def main() -> int:
         return 1
     if "drawTerrain" not in world_js or "screenToWorld" not in world_js:
         print("World terrain or coordinate conversion implementation missing")
+        return 1
+    if "\\\\ncanvas" in css or "#terrain-gpu" not in css or "#battlefield" not in css:
+        print("Layered terrain canvas styles are invalid or incomplete")
         return 1
     if "createRenderPipeline" not in gpu_js or "writeBuffer" not in gpu_js or "gpuRenderer.render" not in js:
         print("Integrated WebGPU terrain renderer is incomplete")
