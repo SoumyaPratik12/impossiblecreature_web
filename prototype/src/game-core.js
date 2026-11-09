@@ -86,7 +86,7 @@
         ![u.x,u.y,u.hp,u.maxHp,u.speed,u.attack,u.defense,u.radius,u.targetX,u.targetY,u.attackCooldown].every(finite)||
         u.radius<5||u.radius>60||u.maxHp<=0||u.hp<=0||u.hp>u.maxHp||u.speed<1||u.speed>500||
         u.attack<0||u.attack>500||u.defense<0||u.defense>500||
-        u.x<u.radius||u.x>world.width-u.radius||u.y<u.radius||u.y>world.height-u.radius||
+        u.x<u.radius||u.x>world.width-u.radius||u.y<u.radius||u.y>world.height-u.radius||\n        u.targetX<u.radius||u.targetX>world.width-u.radius||u.targetY<u.radius||u.targetY>world.height-u.radius||
         !catalog.bodies[u.body]||!catalog.heads[u.head]||typeof u.moveOrder!=="boolean")
         throw new Error("Invalid unit in save");
       ids.add(u.id);return {...u};
