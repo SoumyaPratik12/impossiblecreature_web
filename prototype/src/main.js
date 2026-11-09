@@ -3,6 +3,7 @@
 
   const canvas = document.getElementById("battlefield");
   if (!canvas) return;
+  const gpuCanvas = document.getElementById("terrain-gpu");
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     document.getElementById("runtime-status").textContent = "Canvas unavailable";
@@ -14,6 +15,19 @@
   const worldView = window.CreatureWorldView;
   if (!worldView) throw new Error("World view module failed to load");
   const WORLD = worldView.world;
+  let gpuRenderer = null;
+  if (gpuCanvas && window.CreatureWebGpu) {
+    window.CreatureWebGpu.create(gpuCanvas).then((renderer) => {
+      gpuRenderer = renderer;
+      document.getElementById("runtime-status").textContent = "WebGPU terrain · Canvas unit overlay";
+    }).catch((error) => {
+      gpuCanvas.hidden = true;
+      document.getElementById("runtime-status").textContent = "Canvas 2D fallback · " + error.message;
+    });
+  } else {
+    if (gpuCanvas) gpuCanvas.hidden = true;
+    document.getElementById("runtime-status").textContent = "Canvas 2D fallback · WebGPU unavailable";
+  }
   const STORAGE_KEY = "creature-command-prototype-v1";
   const ui = {
     pause: document.getElementById("pause-button"),
@@ -103,7 +117,7 @@
   function draw() {
     ctx.clearRect(0, 0, W, H);
     worldView.begin(ctx, W, H);
-    worldView.drawTerrain(ctx);
+    if (!gpuRenderer) worldView.drawTerrain(ctx);
 
     for (const unit of units) {
       ctx.beginPath();
@@ -131,6 +145,14 @@
     }
     worldView.end(ctx);
     worldView.drawOverlay(ctx, W, H);
+    if (gpuRenderer) {
+      try { gpuRenderer.render(worldView.cameraState(), W, H, WORLD); }
+      catch (error) {
+        gpuRenderer = null;
+        gpuCanvas.hidden = true;
+        document.getElementById("runtime-status").textContent = "Canvas 2D fallback · WebGPU device unavailable";
+      }
+    }
   }
 
   function updatePanel() {
