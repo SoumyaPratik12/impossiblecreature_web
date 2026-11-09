@@ -50,7 +50,7 @@ const assert = require("node:assert/strict");
     await page.mouse.click(box.x + target.x * box.width / 960, box.y + target.y * box.height / 560, { button: "right" });
     const moved = await page.evaluate(() => window.CreatureGameDebug.getUnits().filter(u => window.CreatureGameDebug.getSelectedIds().includes(u.id)));
     assert.ok(moved.length >= 2 && moved.every(u => u.moveOrder && u.path.length > 0), "right-click issues path-based group movement");
-    assert.match(await page.locator("#game-status").textContent(), /line formation/i, "selected formation is reflected in command feedback");
+    assert.ok(Math.max(...moved.map(u => u.targetY)) - Math.min(...moved.map(u => u.targetY)) < 1, "line formation assigns a shared row of destinations");
     const size = await canvas.evaluate(el => ({ width:el.width, height:el.height }));
     assert.equal(size.width, 1920, "DPR=2 backing width");
     assert.equal(size.height, 1120, "DPR=2 backing height");
