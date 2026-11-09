@@ -176,27 +176,61 @@
   }
 
   let panPointer = null;
+  let draggedUnit = null;
+  let dragMoved = false;
+  let suppressNextClick = false;
   canvas.addEventListener("pointerdown", (event) => {
     if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
       panPointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
       canvas.setPointerCapture(event.pointerId);
       event.preventDefault();
+      return;
+    }
+    if (event.button === 0) {
+      const point = pointerPosition(event);
+      const hit = [...units].reverse().find((unit) =>
+        unit.team === "player" && Math.hypot(unit.x - point.x, unit.y - point.y) <= unit.radius + 8
+      );
+      if (hit) {
+        draggedUnit = hit;
+        dragMoved = false;
+        canvas.setPointerCapture(event.pointerId);
+      }
     }
   });
   canvas.addEventListener("pointermove", (event) => {
-    if (!panPointer || panPointer.id !== event.pointerId) return;
-    const rect = canvas.getBoundingClientRect();
-    const dx = (event.clientX - panPointer.x) * (W / rect.width);
-    const dy = (event.clientY - panPointer.y) * (H / rect.height);
-    worldView.panBy(dx, dy, W, H);
-    panPointer.x = event.clientX;
-    panPointer.y = event.clientY;
-    draw();
+    if (panPointer && panPointer.id === event.pointerId) {
+      const rect = canvas.getBoundingClientRect();
+      const dx = (event.clientX - panPointer.x) * (W / rect.width);
+      const dy = (event.clientY - panPointer.y) * (H / rect.height);
+      worldView.panBy(dx, dy, W, H);
+      panPointer.x = event.clientX;
+      panPointer.y = event.clientY;
+      draw();
+      return;
+    }
+    if (draggedUnit && event.buttons === 1) {
+      const point = pointerPosition(event);
+      if (Math.hypot(point.x - draggedUnit.x, point.y - draggedUnit.y) > 1) dragMoved = true;
+      draggedUnit.x = Math.max(draggedUnit.radius, Math.min(WORLD.width - draggedUnit.radius, point.x));
+      draggedUnit.y = Math.max(draggedUnit.radius, Math.min(WORLD.height - draggedUnit.radius, point.y));
+      draggedUnit.targetX = draggedUnit.x;
+      draggedUnit.targetY = draggedUnit.y;
+      selectedId = draggedUnit.id;
+      updatePanel();
+      draw();
+    }
   });
-  canvas.addEventListener("pointerup", (event) => {
+  function finishPointer(event) {
     if (panPointer && panPointer.id === event.pointerId) panPointer = null;
-  });
-  canvas.addEventListener("pointercancel", () => { panPointer = null; });
+    if (draggedUnit) {
+      suppressNextClick = dragMoved;
+      draggedUnit = null;
+      dragMoved = false;
+    }
+  }
+  canvas.addEventListener("pointerup", finishPointer);
+  canvas.addEventListener("pointercancel", finishPointer);
   canvas.addEventListener("wheel", (event) => {
     event.preventDefault();
     const rect = canvas.getBoundingClientRect();
@@ -207,6 +241,7 @@
   }, { passive: false });
 
   canvas.addEventListener("click", (event) => {
+    if (suppressNextClick) { suppressNextClick = false; return; }
     const point = pointerPosition(event);
     const hit = [...units].reverse().find((unit) =>
       unit.team === "player" && Math.hypot(unit.x - point.x, unit.y - point.y) <= unit.radius + 5
