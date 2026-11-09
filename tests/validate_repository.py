@@ -15,6 +15,7 @@ REQUIRED = [
     "prototype/webgpu-test.html",
     "prototype/style.css",
     "prototype/src/main.js",
+    "prototype/src/creature-catalog.js",
     "prototype/src/world-view.js",
     "prototype/src/webgpu-renderer.js",
     "prototype/src/webgpu-capability.js",
@@ -35,6 +36,7 @@ def main() -> int:
     webgpu_html = (ROOT / "prototype/webgpu-test.html").read_text(encoding="utf-8")
     webgpu_js = (ROOT / "prototype/src/webgpu-test.js").read_text(encoding="utf-8")
     world_js = (ROOT / "prototype/src/world-view.js").read_text(encoding="utf-8")
+    catalog_js = (ROOT / "prototype/src/creature-catalog.js").read_text(encoding="utf-8")
     gpu_js = (ROOT / "prototype/src/webgpu-renderer.js").read_text(encoding="utf-8")
     css = (ROOT / "prototype/style.css").read_text(encoding="utf-8")
 
@@ -55,6 +57,9 @@ def main() -> int:
         return 1
     if "createRenderPipeline" not in gpu_js or "writeBuffer" not in gpu_js or "gpuRenderer.render" not in js:
         print("Integrated WebGPU terrain renderer is incomplete")
+        return 1
+    if "CreatureCatalog.compose" not in js or "maxHp" not in catalog_js or "defense" not in catalog_js:
+        print("Creature composition and stat model is not integrated")
         return 1
     if "localStorage" not in js:
         print("Expected prototype save/load implementation not found")
