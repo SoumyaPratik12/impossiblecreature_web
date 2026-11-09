@@ -79,7 +79,6 @@
     if(event.button!==0)return;
     const p=point(event), hit=hitPlayer(p);
     if(hit){
-      if(event.shiftKey){if(selectedIds.has(hit.id))selectedIds.delete(hit.id);else selectedIds.add(hit.id);}else selectOnly(hit);
       dragState={id:event.pointerId,unit:hit,offsetX:hit.x-p.x,offsetY:hit.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
       canvas.setPointerCapture(event.pointerId); updatePanel(); draw();
     }
