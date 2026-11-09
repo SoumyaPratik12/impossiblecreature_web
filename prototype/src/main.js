@@ -39,7 +39,8 @@
     status: document.getElementById("game-status"),
     name: document.getElementById("unit-name"),
     health: document.getElementById("unit-health"),
-    healthFill: document.getElementById("health-fill")
+    healthFill: document.getElementById("health-fill"),
+    body: document.getElementById("body-select"), head: document.getElementById("head-select"), preview: document.getElementById("creature-preview")
   };
 
   let units = [];
@@ -51,16 +52,14 @@
   const STEP = 1 / 60;
   const MAX_FRAME = 0.1;
 
-  function createUnit(team, x, y) {
-    return {
-      id: nextId++, team, x, y, radius: 15, hp: 100, maxHp: 100,
-      speed: team === "player" ? 105 : 72,
-      attack: team === "player" ? 14 : 10,
-      defense: 2,
-      targetX: x, targetY: y, attackCooldown: 0,
-      body: "wolf", head: "wolf",
-      color: team === "player" ? "#55b9e8" : "#e8796e"
-    };
+  function createUnit(team, x, y, blueprint) {
+    const creature = blueprint || window.CreatureCatalog.compose("wolf", "wolf");
+    const scale = team === "player" ? 1 : 0.85;
+    return { id: nextId++, team, x, y, radius: creature.radius,
+      hp: creature.maxHp * scale, maxHp: creature.maxHp * scale,
+      speed: creature.speed * scale, attack: creature.attack * scale, defense: creature.defense,
+      targetX: x, targetY: y, attackCooldown: 0, body: creature.body, head: creature.head,
+      color: team === "player" ? "#55b9e8" : "#e8796e" };
   }
 
   function reset() {
@@ -231,8 +230,11 @@
     ui.status.textContent = paused ? "Simulation paused" : "Simulation running";
   });
 
+  ui.body.addEventListener("change", updatePanel);
+  ui.head.addEventListener("change", updatePanel);
   ui.spawn.addEventListener("click", () => {
-    const unit = createUnit("player", 300 + Math.random() * 450, 250 + Math.random() * 500);
+    const blueprint = window.CreatureCatalog.compose(ui.body.value, ui.head.value);
+    const unit = createUnit("player", 300 + Math.random() * 450, 250 + Math.random() * 500, blueprint);
     units.push(unit);
     selectedId = unit.id;
     updatePanel();
