@@ -32,14 +32,14 @@
         <div class="field-heading">
           <div>
             <h2>Test arena</h2>
-            <p>Drag a blue unit to move it directly, or select it and right-click a destination. Shift + drag to pan; scroll to zoom.</p>
+            <p>Select a creature, then click a destination or right-click to move. Drag a creature to reposition it.</p>
           </div>
           <div class="legend" aria-label="Team legend">
             <span><i class="dot dot-blue"></i> Player</span>
             <span><i class="dot dot-red"></i> Opponent</span>
           </div>
         </div>
-        <div class="canvas-wrap">
+        <div class="camera-tools" aria-label="Camera controls"><button id="zoom-in" class="button button-secondary" type="button" title="Zoom in">+</button><button id="zoom-out" class="button button-secondary" type="button" title="Zoom out">−</button><button id="reset-view" class="button button-secondary" type="button">Reset view</button><span>Pan: Shift + drag or middle mouse · Zoom: wheel</span></div>\n        <div class="canvas-wrap">
           <canvas id="terrain-gpu" width="960" height="560" aria-hidden="true"></canvas>
           <canvas id="battlefield" width="960" height="560" aria-label="Top-down RTS battlefield">
             Your browser does not support the canvas element.
@@ -78,10 +78,10 @@
           <h3>How to play</h3>
           <ul>
             <li>Left-click a blue unit to select it; drag it to reposition directly.</li>
-            <li>Right-click the arena to issue a move order.</li>
+            <li>With a unit selected, click empty ground or right-click to issue a move order.</li>
             <li>Units automatically engage nearby opponents.</li>
-            <li>Shift + drag to pan the camera.</li>
-            <li>Scroll to zoom around your pointer.</li>
+            <li>Shift + drag or middle-mouse drag to pan the camera.</li>
+            <li>Scroll to zoom around your pointer, or use the zoom controls.</li>
             <li>Use Save state to store a local prototype snapshot.</li>
           </ul>
         </div>
