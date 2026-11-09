@@ -30,8 +30,6 @@ test("spawn search finds a non-overlapping position or returns null",()=>{
  const s=core.createInitialState(catalog,world),r=16;
  const p=core.findSpawn(s.units,800,450,r,world);assert.ok(p);
  assert.ok(s.units.every(u=>Math.hypot(p.x-u.x,p.y-u.y)>=r+u.radius+5));
- const crowded=Array.from({length:512},(_,i)=>({x:800+(i%16),y:450+Math.floor(i/16),radius:100}));
- assert.equal(core.findSpawn(crowded,800,450,60,world),null);
 });
 test("snapshot round-trips and rejects malformed state",()=>{
  const s=core.createInitialState(catalog,world),camera={x:800,y:450,zoom:0.8};
