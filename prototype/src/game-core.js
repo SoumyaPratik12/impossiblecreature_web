@@ -96,12 +96,24 @@
   }
   function issueFormationMove(units,x,y,world,formation="compact",obstacles=DEFAULT_OBSTACLES) {
     const offsets=formationOffsets(units.length,formation),assigned=[];
-    units.forEach((u,i)=>{
-      let p={x:x+offsets[i].x,y:y+offsets[i].y};
-      p.x=clamp(p.x,u.radius,world.width-u.radius);p.y=clamp(p.y,u.radius,world.height-u.radius);
-      const order=issueMove(u,p.x,p.y,world,obstacles);
+    const center=units.reduce((p,u)=>({x:p.x+u.x/Math.max(1,units.length),y:p.y+u.y/Math.max(1,units.length)}),{x:0,y:0});
+    const heading=Math.atan2(y-center.y,x-center.x),cos=Math.cos(heading),sin=Math.sin(heading);
+    for(let i=0;i<units.length;i++){
+      const u=units[i],o=offsets[i];
+      const requested={x:clamp(x+o.x*cos-o.y*sin,u.radius,world.width-u.radius),
+        y:clamp(y+o.x*sin+o.y*cos,u.radius,world.height-u.radius)};
+      let slot=nearestWalkable(requested.x,requested.y,u.radius,world,obstacles);
+      if(slot&&assigned.some(p=>p&&distance(p,slot)<u.radius*2+8)){
+        slot=null;
+        for(let ring=1;ring<=6&&!slot;ring++)for(let dx=-ring;dx<=ring;dx++)for(let dy=-ring;dy<=ring;dy++){
+          if(Math.max(Math.abs(dx),Math.abs(dy))!==ring)continue;
+          const candidate=nearestWalkable(requested.x+dx*24,requested.y+dy*24,u.radius,world,obstacles);
+          if(candidate&&!assigned.some(p=>p&&distance(p,candidate)<u.radius*2+8)){slot=candidate;break;}
+        }
+      }
+      const order=slot?issueMove(u,slot.x,slot.y,world,obstacles):null;
       assigned.push(order?{x:order.x,y:order.y}:null);
-    });
+    }
     return assigned;
   }
   function findSpawn(units,x,y,radius,world) {
@@ -123,41 +135,61 @@
     for(const u of units) {
       if(u.hp<=0)continue;
       u.attackCooldown=Math.max(0,u.attackCooldown-dt);
-      let target=null;
-      if(u.moveOrder) {
-        const destination={x:u.targetX,y:u.targetY};
-        for(const e of units)if(e.team!==u.team&&e.hp>0&&distance(u,e)<90&&(!target||distance(u,e)<distance(u,target)))target=e;
-        if(!target)target=destination;
-        if(target===destination&&distance(u,destination)<=3){u.moveOrder=false;u.path=[];continue;}
-      } else {
-        for(const e of units)if(e.team!==u.team&&e.hp>0&&(!target||distance(u,e)<distance(u,target)))target=e;
-        if(!target||distance(u,target)>=125)continue;
-      }
-      if(target&&target.team&&distance(u,target)<=u.radius+target.radius+8){
-        if(u.attackCooldown<=0){target.hp=Math.max(0,target.hp-Math.max(1,u.attack-target.defense));u.attackCooldown=0.8;}
+      let enemy=null;
+      for(const e of units)if(e.team!==u.team&&e.hp>0&&distance(u,e)<(u.moveOrder?90:125)&&(!enemy||distance(u,e)<distance(u,enemy)))enemy=e;
+      if(enemy&&distance(u,enemy)<=u.radius+enemy.radius+8){
+        if(u.attackCooldown<=0){enemy.hp=Math.max(0,enemy.hp-Math.max(1,u.attack-enemy.defense));u.attackCooldown=0.8;}
         continue;
       }
-      let waypoint=target;
-      if(target&&!target.team&&u.moveOrder&&u.path?.length){
-        while(u.pathIndex<u.path.length&&distance(u,u.path[u.pathIndex])<=Math.max(5,u.speed*dt))u.pathIndex++;
-        waypoint=u.path[u.pathIndex]||target;
+      let waypoint=null;
+      if(enemy)waypoint=enemy;
+      else if(u.moveOrder){
+        if(!Array.isArray(u.path)||!u.path.length){const order=issueMove(u,u.targetX,u.targetY,world,obstacles);if(!order)continue;}
+        while(u.pathIndex<u.path.length&&distance(u,u.path[u.pathIndex])<=Math.max(6,u.speed*dt))u.pathIndex++;
+        waypoint=u.path[u.pathIndex]||{x:u.targetX,y:u.targetY};
       }
-      if(waypoint){
-        const dx=waypoint.x-u.x,dy=waypoint.y-u.y,len=Math.hypot(dx,dy);
-        if(len>0.001){const step=Math.min(len,u.speed*dt);u.x+=dx/len*step;u.y+=dy/len*step;}
-        u.x=clamp(u.x,u.radius,world.width-u.radius);u.y=clamp(u.y,u.radius,world.height-u.radius);
-        if(u.moveOrder&&distance(u,{x:u.targetX,y:u.targetY})<=3){u.moveOrder=false;u.path=[];}
+      if(!waypoint)continue;
+      const dx=waypoint.x-u.x,dy=waypoint.y-u.y,len=Math.hypot(dx,dy);
+      if(len<=0.001)continue;
+      const step=Math.min(len,u.speed*dt),nx=dx/len,ny=dy/len;
+      let px=clamp(u.x+nx*step,u.radius,world.width-u.radius);
+      let py=clamp(u.y+ny*step,u.radius,world.height-u.radius);
+      // Replan if an obstacle was introduced after the order was issued.
+      if(pointBlocked(px,py,u.radius,world,obstacles)){
+        const replanned=findPath(u,{x:u.targetX,y:u.targetY},world,obstacles,40,u.radius);
+        if(replanned.length){u.path=replanned;u.pathIndex=0;}
+        const xOnly={x:px,y:u.y},yOnly={x:u.x,y:py};
+        if(!pointBlocked(xOnly.x,xOnly.y,u.radius,world,obstacles)){px=xOnly.x;py=xOnly.y;}
+        else if(!pointBlocked(yOnly.x,yOnly.y,u.radius,world,obstacles)){px=yOnly.x;py=yOnly.y;}
+        else {px=u.x;py=u.y;}
       }
+      u.x=px;u.y=py;
+      if(u.moveOrder&&distance(u,{x:u.targetX,y:u.targetY})<=Math.max(4,u.speed*dt)){u.x=u.targetX;u.y=u.targetY;u.moveOrder=false;u.path=[];u.pathIndex=0;}
     }
-    // Deterministic pairwise separation prevents overlap and reduces formation congestion.
-    for(let i=0;i<units.length;i++)for(let j=i+1;j<units.length;j++){
-      const a=units[i],b=units[j];if(a.hp<=0||b.hp<=0)continue;
-      let dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy),minimum=a.radius+b.radius+4;
-      if(len>=minimum)continue;
-      if(len<0.001){dx=((a.id+b.id)%2)?1:0;dy=dx?0:1;len=1;}
-      const push=(minimum-len)/2,nx=dx/len,ny=dy/len;
-      a.x=clamp(a.x-nx*push,a.radius,world.width-a.radius);a.y=clamp(a.y-ny*push,a.radius,world.height-a.radius);
-      b.x=clamp(b.x+nx*push,b.radius,world.width-b.radius);b.y=clamp(b.y+ny*push,b.radius,world.height-b.radius);
+    // Resolve unit-to-unit crowding in bounded deterministic passes. Each pass also
+    // checks terrain so separation cannot push a creature into a rock or outside the map.
+    for(let pass=0;pass<4;pass++){
+      let changed=false;
+      for(let i=0;i<units.length;i++)for(let j=i+1;j<units.length;j++){
+        const a=units[i],b=units[j];if(a.hp<=0||b.hp<=0)continue;
+        let dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy),minimum=a.radius+b.radius+5;
+        if(len>=minimum)continue;
+        if(len<0.001){const angle=((a.id*31+b.id*17)%360)*Math.PI/180;dx=Math.cos(angle);dy=Math.sin(angle);len=1;}
+        const overlap=minimum-len,nx=dx/len,ny=dy/len;
+        const aStep=overlap*0.5,bStep=overlap-aStep;
+        const ax=clamp(a.x-nx*aStep,a.radius,world.width-a.radius),ay=clamp(a.y-ny*aStep,a.radius,world.height-a.radius);
+        const bx=clamp(b.x+nx*bStep,b.radius,world.width-b.radius),by=clamp(b.y+ny*bStep,b.radius,world.height-b.radius);
+        const aFree=!pointBlocked(ax,ay,a.radius,world,obstacles),bFree=!pointBlocked(bx,by,b.radius,world,obstacles);
+        if(aFree){a.x=ax;a.y=ay;changed=true;}
+        if(bFree){b.x=bx;b.y=by;changed=true;}
+        if(!aFree&&!bFree){
+          const alternatives=[[a.x-nx*overlap,a.y-ny*overlap],[a.x+ny*overlap,a.y-nx*overlap],
+            [a.x-ny*overlap,a.y+nx*overlap]];
+          for(const p of alternatives){const x=clamp(p[0],a.radius,world.width-a.radius),y=clamp(p[1],a.radius,world.height-a.radius);
+            if(!pointBlocked(x,y,a.radius,world,obstacles)){a.x=x;a.y=y;changed=true;break;}}
+        }
+      }
+      if(!changed)break;
     }
     state.units=units.filter(u=>u.hp>0);return state;
   }
