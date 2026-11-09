@@ -37,21 +37,24 @@
     return null;
   }
   function update(state,dt,world) {
+    if(!finite(dt)||dt<0||dt>1)throw new Error("Invalid simulation delta");
     const units=state.units;
     for(const u of units) {
       if(u.hp<=0)continue;
       u.attackCooldown=Math.max(0,u.attackCooldown-dt);
       let target=null;
       if(u.moveOrder) {
-        target={x:u.targetX,y:u.targetY};
-        if(distance(u,target)<=3){u.moveOrder=false;continue;}
+        const destination={x:u.targetX,y:u.targetY};
+        for(const e of units)if(e.team!==u.team&&e.hp>0&&distance(u,e)<90&&(!target||distance(u,e)<distance(u,target)))target=e;
+        if(!target)target=destination;
+        if(target===destination&&distance(u,destination)<=3){u.moveOrder=false;continue;}
       } else {
-        for(const e of units) if(e.team!==u.team&&e.hp>0&&(!target||distance(u,e)<distance(u,target)))target=e;
+        for(const e of units)if(e.team!==u.team&&e.hp>0&&(!target||distance(u,e)<distance(u,target)))target=e;
         if(!target||distance(u,target)>=125)continue;
-        if(distance(u,target)<=u.radius+target.radius+8) {
-          if(u.attackCooldown<=0){target.hp=Math.max(0,target.hp-Math.max(1,u.attack-target.defense));u.attackCooldown=0.8;}
-          continue;
-        }
+      }
+      if(target&&target.team&&distance(u,target)<=u.radius+target.radius+8){
+        if(u.attackCooldown<=0){target.hp=Math.max(0,target.hp-Math.max(1,u.attack-target.defense));u.attackCooldown=0.8;}
+        continue;
       }
       if(target) {
         const dx=target.x-u.x,dy=target.y-u.y,len=Math.hypot(dx,dy);
