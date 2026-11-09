@@ -43,6 +43,12 @@ jobs:
       - name: Run gameplay and persistence tests
         run: node --test tests/game-core.test.js
 
+      - name: Run browser interaction tests
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/browser-interactions.test.cjs
+
       - name: Package static prototype
         run: |
           mkdir -p dist
