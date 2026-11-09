@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./style.css">
   <script src="./src/world-view.js" defer></script>
   <script src="./src/creature-catalog.js" defer></script>
+  <script src="./src/creature-catalog.js" defer></script>
   <script src="./src/webgpu-renderer.js" defer></script>
   <script src="./src/main.js" defer></script>
 
@@ -54,6 +55,14 @@
       <aside class="control-panel">
         <h2>Command</h2>
         <p class="muted">Prototype controls</p>
+        <div class="creature-lab">
+          <h3>Creature lab</h3>
+          <label for="body-select">Body</label>
+          <select id="body-select"><option value="wolf">Wolf · balanced</option><option value="bear">Bear · tank</option><option value="eagle">Eagle · fast</option></select>
+          <label for="head-select">Head</label>
+          <select id="head-select"><option value="wolf">Wolf · attack</option><option value="bear">Bear · armour</option><option value="eagle">Eagle · speed</option></select>
+          <p id="creature-preview" class="muted">Wolf body / Wolf head</p>
+        </div>
         <div class="creature-lab">
           <h3>Creature lab</h3>
           <label for="body-select">Body</label>
