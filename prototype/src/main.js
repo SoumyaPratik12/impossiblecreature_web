@@ -11,6 +11,9 @@
 
   const W = canvas.width;
   const H = canvas.height;
+  const worldView = window.CreatureWorldView;
+  if (!worldView) throw new Error("World view module failed to load");
+  const WORLD = worldView.world;
   const STORAGE_KEY = "creature-command-prototype-v1";
   const ui = {
     pause: document.getElementById("pause-button"),
@@ -45,9 +48,9 @@
 
   function reset() {
     units = [
-      createUnit("player", 160, 190), createUnit("player", 220, 300),
-      createUnit("player", 145, 410), createUnit("enemy", 730, 175),
-      createUnit("enemy", 790, 300), createUnit("enemy", 700, 420)
+      createUnit("player", 420, 430), createUnit("player", 510, 560),
+      createUnit("player", 390, 720), createUnit("enemy", 1930, 390),
+      createUnit("enemy", 2040, 600), createUnit("enemy", 1880, 790)
     ];
     selectedId = null;
     updatePanel();
@@ -93,31 +96,14 @@
     const step = Math.min(length, unit.speed * dt);
     unit.x += (dx / length) * step;
     unit.y += (dy / length) * step;
-    unit.x = Math.max(unit.radius, Math.min(W - unit.radius, unit.x));
-    unit.y = Math.max(unit.radius, Math.min(H - unit.radius, unit.y));
+    unit.x = Math.max(unit.radius, Math.min(WORLD.width - unit.radius, unit.x));
+    unit.y = Math.max(unit.radius, Math.min(WORLD.height - unit.radius, unit.y));
   }
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#1b3028";
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.strokeStyle = "rgba(173, 205, 180, .10)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= W; x += 40) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    }
-    for (let y = 0; y <= H; y += 40) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
-
-    // Original decorative terrain features, generated at runtime.
-    for (let i = 0; i < 18; i++) {
-      const x = (i * 173 + 53) % W;
-      const y = (i * 97 + 31) % H;
-      ctx.fillStyle = "rgba(107, 145, 94, .14)";
-      ctx.beginPath(); ctx.arc(x, y, 9 + (i % 4) * 3, 0, Math.PI * 2); ctx.fill();
-    }
+    worldView.begin(ctx, W, H);
+    worldView.drawTerrain(ctx);
 
     for (const unit of units) {
       ctx.beginPath();
@@ -136,13 +122,15 @@
 
     const selected = selectedUnit();
     if (selected) {
-      ctx.strokeStyle = "rgba(255, 242, 168, .65)";
-      ctx.setLineDash([4, 5]);
+      ctx.strokeStyle = "rgba(255, 242, 168, .75)";
+      ctx.setLineDash([5, 5]);
       ctx.beginPath();
-      ctx.arc(selected.targetX, selected.targetY, 9, 0, Math.PI * 2);
+      ctx.arc(selected.targetX, selected.targetY, 13, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
     }
+    worldView.end(ctx);
+    worldView.drawOverlay(ctx, W, H);
   }
 
   function updatePanel() {
@@ -157,12 +145,39 @@
   }
 
   function pointerPosition(event) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (event.clientX - rect.left) * (W / rect.width),
-      y: (event.clientY - rect.top) * (H / rect.height)
-    };
+    return worldView.screenToWorld(event, canvas, W, H);
   }
+
+  let panPointer = null;
+  canvas.addEventListener("pointerdown", (event) => {
+    if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
+      panPointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    }
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!panPointer || panPointer.id !== event.pointerId) return;
+    const rect = canvas.getBoundingClientRect();
+    const dx = (event.clientX - panPointer.x) * (W / rect.width);
+    const dy = (event.clientY - panPointer.y) * (H / rect.height);
+    worldView.panBy(dx, dy, W, H);
+    panPointer.x = event.clientX;
+    panPointer.y = event.clientY;
+    draw();
+  });
+  canvas.addEventListener("pointerup", (event) => {
+    if (panPointer && panPointer.id === event.pointerId) panPointer = null;
+  });
+  canvas.addEventListener("pointercancel", () => { panPointer = null; });
+  canvas.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const sx = (event.clientX - rect.left) * (W / rect.width);
+    const sy = (event.clientY - rect.top) * (H / rect.height);
+    worldView.zoomAt(sx, sy, event.deltaY, W, H);
+    draw();
+  }, { passive: false });
 
   canvas.addEventListener("click", (event) => {
     const point = pointerPosition(event);
@@ -179,8 +194,8 @@
     const unit = selectedUnit();
     if (!unit) return;
     const point = pointerPosition(event);
-    unit.targetX = Math.max(unit.radius, Math.min(W - unit.radius, point.x));
-    unit.targetY = Math.max(unit.radius, Math.min(H - unit.radius, point.y));
+    unit.targetX = Math.max(unit.radius, Math.min(WORLD.width - unit.radius, point.x));
+    unit.targetY = Math.max(unit.radius, Math.min(WORLD.height - unit.radius, point.y));
   });
 
   ui.pause.addEventListener("click", () => {
@@ -190,7 +205,7 @@
   });
 
   ui.spawn.addEventListener("click", () => {
-    const unit = createUnit("player", 100 + Math.random() * 150, 100 + Math.random() * 350);
+    const unit = createUnit("player", 300 + Math.random() * 450, 250 + Math.random() * 500);
     units.push(unit);
     selectedId = unit.id;
     updatePanel();
@@ -228,6 +243,7 @@
 
   ui.reset.addEventListener("click", () => {
     reset();
+    worldView.resetCamera(W, H);
     ui.status.textContent = "Arena reset";
   });
 
