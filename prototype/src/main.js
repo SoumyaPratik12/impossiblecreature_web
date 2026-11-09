@@ -7,7 +7,8 @@
   const W = canvas.width, H = canvas.height;
   const worldView = window.CreatureWorldView;
   const catalog = window.CreatureCatalog;
-  if (!worldView || !catalog) throw new Error("Game modules failed to load");
+  const core = window.CreatureGameCore;
+  if (!worldView || !catalog || !core) throw new Error("Game modules failed to load");
   const WORLD = worldView.world;
   const status = document.getElementById("runtime-status");
   const gpuCanvas = document.getElementById("terrain-gpu");
@@ -23,66 +24,17 @@
     preview: el("creature-preview"), zoomIn: el("zoom-in"), zoomOut: el("zoom-out"),
     resetView: el("reset-view")
   };
-  const STORAGE_KEY = "creature-command-prototype-v2";
+  const STORAGE_KEY = "creature-command-prototype-v3";
   let units = [], selectedId = null, paused = false, nextId = 1;
   let lastTime = 0, accumulator = 0;
   const STEP = 1 / 60, MAX_FRAME = 0.1;
   let panPointer = null, dragState = null, suppressClick = false, spaceDown = false;
 
-  function createUnit(team, x, y, blueprint) {
-    const c = blueprint || catalog.compose("wolf", "wolf");
-    const scale = team === "player" ? 1 : 0.85;
-    return { id: nextId++, team, x, y, radius: c.radius, hp: c.maxHp * scale,
-      maxHp: c.maxHp * scale, speed: c.speed * scale, attack: c.attack * scale,
-      defense: c.defense, targetX: x, targetY: y, moveOrder: false, attackCooldown: 0,
-      body: c.body, head: c.head, color: team === "player" ? "#55b9e8" : "#e8796e" };
-  }
-  function reset() {
-    units = [createUnit("player",420,430),createUnit("player",510,560),createUnit("player",390,720),
-      createUnit("enemy",1260,390),createUnit("enemy",1340,600),createUnit("enemy",1230,790)];
-    selectedId = null;
-    updatePanel();
-  }
+  function createUnit(team,x,y,blueprint) { return core.createUnit(team,x,y,blueprint||catalog.compose("wolf","wolf"),nextId++,WORLD); }
+  function reset() { const initial=core.createInitialState(catalog,WORLD);units=initial.units;nextId=initial.nextId;selectedId=null;paused=false;ui.pause.textContent="Pause";updatePanel(); }
   function selectedUnit() { return units.find((u) => u.id === selectedId) || null; }
-  function distance(a,b) { return Math.hypot(a.x-b.x,a.y-b.y); }
-  function clampPoint(x,y,r=0) {
-    return { x: Math.max(r,Math.min(WORLD.width-r,x)), y: Math.max(r,Math.min(WORLD.height-r,y)) };
-  }
-  function issueMove(unit,x,y) {
-    const p=clampPoint(x,y,unit.radius);
-    unit.targetX=p.x; unit.targetY=p.y; unit.moveOrder=true;
-  }
-  function update(dt) {
-    for (const unit of units) {
-      if (unit.hp<=0) continue;
-      unit.attackCooldown=Math.max(0,unit.attackCooldown-dt);
-      // Explicit player move orders take priority; nearby enemies cannot cancel the command.
-      if (unit.moveOrder) {
-        if (Math.hypot(unit.targetX-unit.x,unit.targetY-unit.y)>3) moveToward(unit,unit.targetX,unit.targetY,dt);
-        else unit.moveOrder=false;
-        continue;
-      }
-      const enemy=units.filter(o=>o.team!==unit.team&&o.hp>0)
-        .sort((a,b)=>distance(unit,a)-distance(unit,b))[0];
-      if (enemy && distance(unit,enemy)<125) {
-        if (distance(unit,enemy)>unit.radius+enemy.radius+8) moveToward(unit,enemy.x,enemy.y,dt);
-        else if (unit.attackCooldown<=0) {
-          enemy.hp=Math.max(0,enemy.hp-Math.max(1,unit.attack-enemy.defense));
-          unit.attackCooldown=0.8;
-        }
-      }
-    }
-    units=units.filter(u=>u.hp>0);
-    if (selectedId!==null&&!selectedUnit()) selectedId=null;
-    updatePanel();
-  }
-  function moveToward(unit,x,y,dt) {
-    const dx=x-unit.x,dy=y-unit.y,len=Math.hypot(dx,dy);
-    if (len<0.5) return;
-    const step=Math.min(len,unit.speed*dt);
-    unit.x+=dx/len*step; unit.y+=dy/len*step;
-    const p=clampPoint(unit.x,unit.y,unit.radius); unit.x=p.x; unit.y=p.y;
-  }
+  function issueMove(unit,x,y) { core.issueMove(unit,x,y,WORLD); }
+  function update(dt) { const simulation={units,nextId};core.update(simulation,dt,WORLD);units=simulation.units;if(selectedId!==null&&!selectedUnit())selectedId=null;updatePanel(); }
   function draw() {
     ctx.clearRect(0,0,W,H);
     worldView.begin(ctx,W,H);
@@ -186,22 +138,23 @@
   ui.body.addEventListener("change",updatePanel); ui.head.addEventListener("change",updatePanel);
   ui.spawn.addEventListener("click",()=>{
     const blueprint=catalog.compose(ui.body.value,ui.head.value);
-    const u=createUnit("player",300+Math.random()*450,250+Math.random()*500,blueprint);
+    const position=core.findSpawn(units,Math.random()*WORLD.width,Math.random()*WORLD.height,blueprint.radius,WORLD);
+    if(!position){ui.status.textContent="No safe spawn location available";return;}
+    const u=createUnit("player",position.x,position.y,blueprint);
     units.push(u);selectedId=u.id;updatePanel();draw();
   });
   ui.save.addEventListener("click",()=>{
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify({units,nextId,camera:worldView.cameraState()}));ui.status.textContent="Saved in this browser";}
-    catch(e){ui.status.textContent="Save failed: browser storage unavailable";}
+    try { const saved=core.snapshot({units,nextId},worldView.cameraState());saved.selectedId=selectedId;localStorage.setItem(STORAGE_KEY,JSON.stringify(saved));ui.status.textContent="Saved in this browser"; }
+    catch(error) { ui.status.textContent="Save failed: "+error.message; }
   });
   ui.load.addEventListener("click",()=>{
-    try{
-      const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
-      if(!s||!Array.isArray(s.units)||!Number.isInteger(s.nextId))throw new Error("Invalid save");
-      units=s.units.filter(u=>u&&Number.isFinite(u.x)&&Number.isFinite(u.y)&&(u.team==="player"||u.team==="enemy")&&Number.isFinite(u.hp));
-      nextId=s.nextId;selectedId=null;
-      if(s.camera)worldView.setCamera(s.camera,W,H);
-      updatePanel();ui.status.textContent="Save loaded";draw();
-    }catch(e){ui.status.textContent="No valid saved state found";}
+    try {
+      const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
+      const restored=core.validateSave(saved,WORLD,catalog);
+      units=restored.units;nextId=restored.nextId;
+      selectedId=units.some(u=>u.id===saved.selectedId&&u.team==="player")?saved.selectedId:null;
+      worldView.setCamera(restored.camera,W,H);updatePanel();ui.status.textContent="Save loaded";draw();
+    } catch(error) { ui.status.textContent="No valid save found · "+error.message; }
   });
   ui.reset.addEventListener("click",()=>{reset();worldView.resetCamera(W,H);ui.status.textContent="Arena reset";draw();});
   function frame(timestamp){
