@@ -8,6 +8,7 @@
   <title>Impossible Creatures — Browser Prototype</title>
   <link rel="stylesheet" href="./style.css">
   <script src="./src/world-view.js" defer></script>
+  <script src="./src/creature-catalog.js" defer></script>
   <script src="./src/webgpu-renderer.js" defer></script>
   <script src="./src/main.js" defer></script>
 
@@ -53,8 +54,16 @@
       <aside class="control-panel">
         <h2>Command</h2>
         <p class="muted">Prototype controls</p>
+        <div class="creature-lab">
+          <h3>Creature lab</h3>
+          <label for="body-select">Body</label>
+          <select id="body-select"><option value="wolf">Wolf · balanced</option><option value="bear">Bear · tank</option><option value="eagle">Eagle · fast</option></select>
+          <label for="head-select">Head</label>
+          <select id="head-select"><option value="wolf">Wolf · attack</option><option value="bear">Bear · armour</option><option value="eagle">Eagle · speed</option></select>
+          <p id="creature-preview" class="muted">Wolf body / Wolf head</p>
+        </div>
         <div class="control-group">
-          <button id="spawn-button" class="button button-primary" type="button">Spawn player unit</button>
+          <button id="spawn-button" class="button button-primary" type="button">Spawn composed creature</button>
           <button id="save-button" class="button button-secondary" type="button">Save state</button>
           <button id="load-button" class="button button-secondary" type="button">Load state</button>
           <button id="reset-button" class="button button-quiet" type="button">Reset arena</button>
