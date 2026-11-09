@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const world = Object.freeze({ width: 2400, height: 1400, tileSize: 80 });
+  const world = Object.freeze({ width: 1600, height: 900, tileSize: 80 });
   const camera = { x: world.width / 2, y: world.height / 2, zoom: 1 };
   const MIN_ZOOM = 0.55;
   const MAX_ZOOM = 2.2;
@@ -61,9 +61,9 @@
     ctx.strokeStyle = "rgba(139, 119, 79, .34)";
     ctx.lineWidth = 76;
     ctx.beginPath();
-    ctx.moveTo(180, 1080);
-    ctx.bezierCurveTo(650, 850, 720, 520, 1120, 650);
-    ctx.bezierCurveTo(1510, 790, 1710, 300, 2240, 240);
+    ctx.moveTo(120, 820);
+    ctx.bezierCurveTo(430, 700, 520, 360, 780, 470);
+    ctx.bezierCurveTo(1080, 560, 1180, 240, 1500, 180);
     ctx.stroke();
     ctx.strokeStyle = "rgba(191, 170, 119, .13)";
     ctx.lineWidth = 3;
