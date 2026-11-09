@@ -119,7 +119,7 @@
   });
   function finishPointer(event){
     if(panPointer&&panPointer.id===event.pointerId){if(panPointer.button===0)suppressClick=true;panPointer=null;}
-    if(dragState&&dragState.id===event.pointerId){suppressClick=dragState.moved;dragState=null;}
+    if(dragState&&dragState.id===event.pointerId){suppressClick=suppressClick||dragState.moved;dragState=null;}
     if(selectionDrag&&selectionDrag.id===event.pointerId){const b=selectionDrag;if(b.moved){if(!b.additive)selectedIds.clear();for(const u of units)if(u.team==="player"&&pointInSelection(u,b))selectedIds.add(u.id);suppressClick=true;}selectionDrag=null;updatePanel();draw();}
   }
   canvas.addEventListener("pointerup",finishPointer);
