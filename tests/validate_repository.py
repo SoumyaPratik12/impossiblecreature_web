@@ -15,6 +15,7 @@ REQUIRED = [
     "prototype/webgpu-test.html",
     "prototype/style.css",
     "prototype/src/main.js",
+    "prototype/src/world-view.js",
     "prototype/src/webgpu-capability.js",
     "prototype/src/webgpu-test.js",
     "wasm/hello.c",
@@ -32,12 +33,19 @@ def main() -> int:
     js = (ROOT / "prototype/src/main.js").read_text(encoding="utf-8")
     webgpu_html = (ROOT / "prototype/webgpu-test.html").read_text(encoding="utf-8")
     webgpu_js = (ROOT / "prototype/src/webgpu-test.js").read_text(encoding="utf-8")
+    world_js = (ROOT / "prototype/src/world-view.js").read_text(encoding="utf-8")
 
     if 'id="battlefield"' not in html:
         print("Prototype canvas element not found")
         return 1
     if not re.search(r'getElementById\(["\']battlefield["\']\)', js):
         print("JavaScript does not initialize the battlefield canvas")
+        return 1
+    if "CreatureWorldView" not in js or "worldView.zoomAt" not in js or "worldView.panBy" not in js:
+        print("Camera controls are not integrated into the prototype")
+        return 1
+    if "drawTerrain" not in world_js or "screenToWorld" not in world_js:
+        print("World terrain or coordinate conversion implementation missing")
         return 1
     if "localStorage" not in js:
         print("Expected prototype save/load implementation not found")
