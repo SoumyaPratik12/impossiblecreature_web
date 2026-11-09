@@ -31,7 +31,7 @@
     status: el("game-status"), name: el("unit-name"), health: el("unit-health"),
     healthFill: el("health-fill"), body: el("body-select"), head: el("head-select"),
     preview: el("creature-preview"), zoomIn: el("zoom-in"), zoomOut: el("zoom-out"),
-    resetView: el("reset-view")
+    resetView: el("reset-view"), formation: el("formation-select")
   };
   const STORAGE_KEY = "creature-command-prototype-v3";
   let units = [], selectedIds = new Set(), paused = false, nextId = 1;
@@ -44,13 +44,14 @@
   function selectedUnit() { return units.find(u=>selectedIds.has(u.id))||null; }
   function selectedUnits(){return units.filter(u=>selectedIds.has(u.id));}
   function selectOnly(u){selectedIds.clear();if(u)selectedIds.add(u.id);}
-  function issueMoveSelection(x,y){const group=selectedUnits();if(!group.length)return;const cols=Math.ceil(Math.sqrt(group.length)),spacing=54,rows=Math.ceil(group.length/cols),startX=x-((Math.min(cols,group.length)-1)*spacing)/2,startY=y-((rows-1)*spacing)/2;group.forEach((u,i)=>{issueMove(u,startX+(i%cols)*spacing,startY+Math.floor(i/cols)*spacing);});ui.status.textContent="Formation move order issued to "+group.length+" creatures";draw();}
+  function issueMoveSelection(x,y){const group=selectedUnits();if(!group.length)return;const formation=ui.formation?.value||"compact";core.issueFormationMove(group,x,y,WORLD,formation);ui.status.textContent=formation+" formation order issued to "+group.length+" creatures";draw();}
   function issueMove(unit,x,y) { core.issueMove(unit,x,y,WORLD); }
-  function update(dt) { const s={units,nextId};core.update(s,dt,WORLD);units=s.units;for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);updatePanel(); }
+  function update(dt) { const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);updatePanel(); }
   function draw() {
     ctx.clearRect(0,0,W,H);
     worldView.begin(ctx,W,H);
     worldView.drawTerrain(ctx);
+    for(const o of core.DEFAULT_OBSTACLES){ctx.save();ctx.fillStyle="#18251f";ctx.strokeStyle="#78836a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(o.x,o.y,o.radius,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle="rgba(190,196,157,.16)";ctx.beginPath();ctx.arc(o.x-o.radius*.25,o.y-o.radius*.25,o.radius*.38,0,Math.PI*2);ctx.fill();ctx.restore();}
     for (const u of units) {
       {
         ctx.beginPath(); ctx.fillStyle=u.team==="player"?"#55b9e8":"#e8796e"; ctx.arc(u.x,u.y,u.radius,0,Math.PI*2); ctx.fill();
@@ -64,7 +65,7 @@
       ctx.fillStyle=u.team==="player"?"#6de0a1":"#f2a08f";
       ctx.fillRect(u.x-17,u.y-u.radius-12,34*Math.max(0,u.hp/u.maxHp),5);
     }
-    for(const selected of selectedUnits())if(selected.moveOrder){ctx.save();ctx.strokeStyle="rgba(255,242,168,.9)";ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(selected.targetX,selected.targetY,12,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
+    for(const selected of selectedUnits())if(selected.moveOrder){ctx.save();ctx.strokeStyle="rgba(255,242,168,.95)";ctx.fillStyle="rgba(255,242,168,.12)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(selected.targetX,selected.targetY,12,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(selected.targetX-7,selected.targetY);ctx.lineTo(selected.targetX+7,selected.targetY);ctx.moveTo(selected.targetX,selected.targetY-7);ctx.lineTo(selected.targetX,selected.targetY+7);ctx.stroke();ctx.restore();}
     worldView.end(ctx);
     worldView.drawOverlay(ctx,W,H);
     if(selectionDrag){const a=worldView.worldToScreen(selectionDrag.x1,selectionDrag.y1,W,H),b=worldView.worldToScreen(selectionDrag.x2,selectionDrag.y2,W,H);ctx.save();ctx.fillStyle="rgba(91,190,232,.16)";ctx.strokeStyle="#8dd8ff";ctx.lineWidth=1.5;ctx.fillRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.restore();}
@@ -175,5 +176,5 @@
     draw();requestAnimationFrame(frame);
   }
   worldView.resetCamera(W,H);reset();resizeCanvasForDisplay();requestAnimationFrame(frame);
-  window.CreatureGameDebug={getUnits:()=>units.map(u=>({...u})),getSelectedIds:()=>[...selectedIds],selectAll:()=>{selectedIds=new Set(units.filter(u=>u.team==="player").map(u=>u.id));updatePanel();draw();},issueMoveSelection,worldToScreen:(x,y)=>worldView.worldToScreen(x,y,W,H)};
+  window.CreatureGameDebug={getUnits:()=>units.map(u=>({...u,path:(u.path||[]).map(p=>({...p}))})),getSelectedIds:()=>[...selectedIds],selectAll:()=>{selectedIds=new Set(units.filter(u=>u.team==="player"&&u.hp>0).map(u=>u.id));updatePanel();draw();},issueMoveSelection,worldToScreen:(x,y)=>worldView.worldToScreen(x,y,W,H)};
 })();
