@@ -58,7 +58,7 @@ def main() -> int:
     if "createRenderPipeline" not in gpu_js or "writeBuffer" not in gpu_js or "gpuRenderer.render" not in js:
         print("Integrated WebGPU terrain renderer is incomplete")
         return 1
-    if "CreatureCatalog.compose" not in js or "maxHp" not in catalog_js or "defense" not in catalog_js:
+    if "catalog.compose" not in js or "maxHp" not in catalog_js or "defense" not in catalog_js:
         print("Creature composition and stat model is not integrated")
         return 1
     if "localStorage" not in js:
