@@ -27,6 +27,7 @@
     for(let y=0;y<=world.height;y+=160){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(world.width,y);ctx.stroke();}
     ctx.strokeStyle="rgba(210,228,205,.4)";ctx.lineWidth=5;ctx.strokeRect(2,2,world.width-4,world.height-4);
   }
+  function worldToScreen(x,y,w,h){return{x:(x-camera.x)*camera.zoom+w/2,y:(y-camera.y)*camera.zoom+h/2};}
   function screenToWorld(event,canvas,w,h){
     const r=canvas.getBoundingClientRect(),sx=(event.clientX-r.left)*w/r.width,sy=(event.clientY-r.top)*h/r.height;
     return{x:camera.x+(sx-w/2)/camera.zoom,y:camera.y+(sy-h/2)/camera.zoom};
@@ -46,5 +47,5 @@
   function setCamera(value,w,h){if(!value||!Number.isFinite(value.x)||!Number.isFinite(value.y)||!Number.isFinite(value.zoom))return;camera.x=value.x;camera.y=value.y;camera.zoom=clamp(value.zoom,MIN_ZOOM,MAX_ZOOM);clampCamera(w,h);}
   function cameraState(){return{x:camera.x,y:camera.y,zoom:camera.zoom};}
   function drawOverlay(ctx,w,h){ctx.save();ctx.fillStyle="rgba(7,14,17,.72)";ctx.fillRect(12,h-38,250,26);ctx.fillStyle="#d5e5d5";ctx.font="12px system-ui,sans-serif";ctx.fillText(`WORLD ${world.width} × ${world.height}   ZOOM ${Math.round(camera.zoom*100)}%`,22,h-21);ctx.restore();}
-  window.CreatureWorldView={world,begin,end,drawTerrain,drawOverlay,screenToWorld,panBy,zoomAt,zoomBy,resetCamera,setCamera,cameraState};
+  window.CreatureWorldView={world,begin,end,drawTerrain,drawOverlay,worldToScreen,screenToWorld,panBy,zoomAt,zoomBy,resetCamera,setCamera,cameraState};
 })();
