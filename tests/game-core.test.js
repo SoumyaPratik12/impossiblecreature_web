@@ -44,5 +44,32 @@ test("combat reduces health and removes defeated units",()=>{
   {...core.createUnit("player",400,400,catalog.compose("bear","bear"),1,world),x:400,y:400,attackCooldown:0},
   {...core.createUnit("enemy",420,400,catalog.compose("wolf","wolf"),2,world),x:420,y:400,attackCooldown:0}
  ]};
- const hp=s.units[1].hp;core.update(s,1/60,world);assert.ok(s.units[1].hp<hp);
+ for(let i=0;i<300;i++)core.update(s,1/60,world);assert.equal(s.units.length,1);
+});
+
+test("all body and head combinations produce bounded positive stats",()=>{
+ for(const body of Object.keys(catalog.bodies))for(const head of Object.keys(catalog.heads)){
+  const c=catalog.compose(body,head);
+  assert.equal(c.body,body);assert.equal(c.head,head);
+  assert.ok(c.maxHp>=50&&c.speed>=35&&c.attack>=4&&c.defense>=0&&c.radius>0);
+ }
+});
+test("camera zoom keeps the pointer anchor stable away from world edges",()=>{
+ const viewContext={window:{}};
+ vm.runInNewContext(fs.readFileSync("prototype/src/world-view.js","utf8"),viewContext);
+ const view=viewContext.window.CreatureWorldView;view.resetCamera(960,560);
+ const canvas={getBoundingClientRect:()=>({left:0,top:0,width:960,height:560})};
+ const event={clientX:300,clientY:210};
+ const before=view.screenToWorld(event,canvas,960,560);
+ view.zoomAt(300,210,-120,960,560);
+ const after=view.screenToWorld(event,canvas,960,560);
+ assert.ok(Math.abs(before.x-after.x)<1e-8);assert.ok(Math.abs(before.y-after.y)<1e-8);
+});
+test("camera panning changes the camera without leaving world bounds",()=>{
+ const viewContext={window:{}};
+ vm.runInNewContext(fs.readFileSync("prototype/src/world-view.js","utf8"),viewContext);
+ const view=viewContext.window.CreatureWorldView;view.resetCamera(960,560);
+ const before=view.cameraState();view.panBy(40,25,960,560);const after=view.cameraState();
+ assert.ok(after.x<before.x&&after.y<before.y);
+ assert.ok(after.x>=0&&after.x<=1600&&after.y>=0&&after.y<=900);
 });
