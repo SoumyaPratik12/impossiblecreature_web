@@ -61,9 +61,28 @@
     }
     return [];
   }
+  function nearestWalkable(x,y,radius,world,obstacles=DEFAULT_OBSTACLES) {
+    if(!pointBlocked(x,y,radius,world,obstacles))return{x,y};
+    const step=40;
+    for(let ring=1;ring<=8;ring++){
+      let best=null;
+      for(let dx=-ring;dx<=ring;dx++)for(let dy=-ring;dy<=ring;dy++){
+        if(Math.max(Math.abs(dx),Math.abs(dy))!==ring)continue;
+        const px=clamp(Math.round(x/step)*step+dx*step+step/2,radius,world.width-radius);
+        const py=clamp(Math.round(y/step)*step+dy*step+step/2,radius,world.height-radius);
+        if(pointBlocked(px,py,radius,world,obstacles))continue;
+        const d=Math.hypot(px-x,py-y);if(!best||d<best.d)best={x:px,y:py,d};
+      }
+      if(best)return{x:best.x,y:best.y};
+    }
+    return null;
+  }
   function issueMove(unit,x,y,world,obstacles=DEFAULT_OBSTACLES) {
-    const destination={x:clamp(x,unit.radius,world.width-unit.radius),y:clamp(y,unit.radius,world.height-unit.radius)};
+    const requested={x:clamp(x,unit.radius,world.width-unit.radius),y:clamp(y,unit.radius,world.height-unit.radius)};
+    const destination=nearestWalkable(requested.x,requested.y,unit.radius,world,obstacles);
+    if(!destination){unit.moveOrder=false;unit.path=[];return null;}
     const path=findPath(unit,destination,world,obstacles,40,unit.radius);
+    if(!path.length&&distance(unit,destination)>4){unit.moveOrder=false;unit.path=[];return null;}
     unit.targetX=destination.x;unit.targetY=destination.y;unit.moveOrder=true;
     unit.path=path.length?path:[destination];unit.pathIndex=0;
     return {x:destination.x,y:destination.y,path:unit.path};
@@ -80,11 +99,8 @@
     units.forEach((u,i)=>{
       let p={x:x+offsets[i].x,y:y+offsets[i].y};
       p.x=clamp(p.x,u.radius,world.width-u.radius);p.y=clamp(p.y,u.radius,world.height-u.radius);
-      if(pointBlocked(p.x,p.y,u.radius,world,obstacles)){
-        const found=findPath({x,y},p,world,obstacles,40,u.radius);
-        if(found.length)p=found[0];
-      }
-      issueMove(u,p.x,p.y,world,obstacles);assigned.push({x:u.targetX,y:u.targetY});
+      const order=issueMove(u,p.x,p.y,world,obstacles);
+      assigned.push(order?{x:order.x,y:order.y}:null);
     });
     return assigned;
   }
@@ -169,5 +185,5 @@
     if(raw.nextId<=Math.max(0,...ids))throw new Error("Invalid next unit ID");
     return {units,nextId:raw.nextId,camera:{x:raw.camera.x,y:raw.camera.y,zoom:raw.camera.zoom}};
   }
-  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueFormationMove,formationOffsets,findPath,pointBlocked,findSpawn,update,snapshot,validateSave};
+  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueFormationMove,formationOffsets,findPath,pointBlocked,nearestWalkable,findSpawn,update,snapshot,validateSave};
 })();
