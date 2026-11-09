@@ -1,0 +1,51 @@
+const { spawn } = require("node:child_process");
+const { setTimeout: delay } = require("node:timers/promises");
+const { chromium } = require("playwright");
+const assert = require("node:assert/strict");
+(async () => {
+  const server = spawn("python", ["-m", "http.server", "4173", "--directory", "."], { stdio: "ignore" });
+  let browser;
+  try {
+    let ready = false;
+    for (let i = 0; i < 40; i++) {
+      try { const r = await fetch("http://127.0.0.1:4173/prototype/"); if (r.ok) { ready = true; break; } } catch {}
+      await delay(250);
+    }
+    assert.ok(ready, "static server failed to start");
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto("http://127.0.0.1:4173/prototype/", { waitUntil: "networkidle" });
+    await page.waitForFunction(() => window.CreatureGameDebug && window.CreatureWorldView);
+    const canvas = page.locator("#battlefield"), box = await canvas.boundingBox();
+    const units = await page.evaluate(() => window.CreatureGameDebug.getUnits().filter(u => u.team === "player").map(u => ({ id:u.id, ...window.CreatureGameDebug.worldToScreen(u.x,u.y) })));
+    await page.mouse.click(box.x + units[0].x * box.width / 960, box.y + units[0].y * box.height / 560);
+    let selected = await page.evaluate(() => window.CreatureGameDebug.getSelectedIds());
+    assert.deepEqual(selected, [units[0].id], "click selects one unit");
+    await page.keyboard.down("Shift");
+    await page.mouse.click(box.x + units[1].x * box.width / 960, box.y + units[1].y * box.height / 560);
+    await page.keyboard.up("Shift");
+    selected = await page.evaluate(() => window.CreatureGameDebug.getSelectedIds());
+    assert.equal(selected.length, 2, "Shift-click adds a unit");
+    await page.keyboard.press("Escape");
+    selected = await page.evaluate(() => window.CreatureGameDebug.getSelectedIds());
+    assert.equal(selected.length, 0, "Escape clears selection");
+    await page.mouse.move(box.x + 90, box.y + 90);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.62, box.y + box.height * 0.9, { steps: 10 });
+    await page.mouse.up();
+    selected = await page.evaluate(() => window.CreatureGameDebug.getSelectedIds());
+    assert.ok(selected.length >= 2, "drag box selects multiple units");
+    await page.locator("#save-button").click();
+    await page.locator("#reset-button").click();
+    await page.locator("#load-button").click();
+    selected = await page.evaluate(() => window.CreatureGameDebug.getSelectedIds());
+    assert.ok(selected.length >= 2, "save/load restores selected units");
+    const size = await canvas.evaluate(el => ({ width:el.width, height:el.height }));
+    assert.equal(size.width, 1920, "DPR=2 backing width");
+    assert.equal(size.height, 1120, "DPR=2 backing height");
+    assert.deepEqual(errors, [], "no uncaught browser errors");
+    console.log("Browser tests passed: click, shift-click, deselect, drag-box, save/load, high-DPI.");
+  } finally { if (browser) await browser.close(); server.kill("SIGTERM"); }
+})().catch(e => { console.error(e); process.exitCode = 1; });
