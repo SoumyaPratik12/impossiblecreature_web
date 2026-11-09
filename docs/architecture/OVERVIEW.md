@@ -47,11 +47,11 @@ Owns entity state, movement, targeting, combat, and deterministic update order. 
 
 ### Renderer
 
-The current prototype uses Canvas 2D. A WebGPU spike should evaluate adapter/device availability, resource lifecycle, shader pipeline setup, texture upload, and fallback behavior. WebGPU is not a direct replacement for legacy Direct3D APIs.
+The active prototype uses Canvas 2D for the visible terrain and unit scene. WebGPU terrain and instanced-unit code remain isolated experiments; they must pass real-browser shader, device-loss, rendering parity, and fallback tests before integration. WebGPU is not a direct replacement for legacy Direct3D APIs.
 
 ### Persistence
 
-The prototype uses localStorage only for a small demonstration save. Real game state and larger content should use IndexedDB or Origin Private File System after quota, lifecycle, and migration behavior are tested.
+The active prototype uses versioned localStorage snapshots for small sessions. The game core validates the schema, unit IDs, teams, numeric ranges, world bounds, creature keys, and camera values before restoring. Larger sessions should move to IndexedDB or Origin Private File System after quota, lifecycle, and migration behavior are tested.
 
 ## Proposed interfaces
 
