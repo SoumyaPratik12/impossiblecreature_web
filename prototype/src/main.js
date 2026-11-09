@@ -1,10 +1,19 @@
 (() => {
   "use strict";
   const canvas = document.getElementById("battlefield");
-  const ctx = canvas && canvas.getContext("2d");
+  const ctx = canvas && canvas.getContext("2d", { alpha: false });
   if (!canvas || !ctx) return;
 
-  const W = canvas.width, H = canvas.height;
+  const W = 960, H = 560;
+  let pixelRatio = 1;
+  function resizeCanvasForDisplay() {
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    if (ratio === pixelRatio && canvas.width === Math.round(W * ratio)) return;
+    pixelRatio = ratio; canvas.width = Math.round(W * ratio); canvas.height = Math.round(H * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw();
+  }
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(resizeCanvasForDisplay).observe(canvas.parentElement);
+  window.addEventListener("resize", resizeCanvasForDisplay);
   const worldView = window.CreatureWorldView;
   const catalog = window.CreatureCatalog;
   const core = window.CreatureGameCore;
@@ -28,14 +37,14 @@
   let units = [], selectedIds = new Set(), paused = false, nextId = 1;
   let lastTime = 0, accumulator = 0;
   const STEP = 1 / 60, MAX_FRAME = 0.1;
-  let panPointer = null, dragState = null, suppressClick = false, spaceDown = false;
+  let panPointer = null, dragState = null, selectionDrag = null, suppressClick = false, spaceDown = false;
 
   function createUnit(team,x,y,blueprint) { return core.createUnit(team,x,y,blueprint||catalog.compose("wolf","wolf"),nextId++,WORLD); }
   function reset() { const initial=core.createInitialState(catalog,WORLD);units=initial.units;nextId=initial.nextId;selectedIds.clear();paused=false;ui.pause.textContent="Pause";updatePanel(); }
   function selectedUnit() { return units.find(u=>selectedIds.has(u.id))||null; }
   function selectedUnits(){return units.filter(u=>selectedIds.has(u.id));}
   function selectOnly(u){selectedIds.clear();if(u)selectedIds.add(u.id);}
-  function issueMoveSelection(x,y){const a=selectedUnits();if(!a.length)return;const dx=x-a[0].x,dy=y-a[0].y;for(const u of a)issueMove(u,u.x+dx,u.y+dy);ui.status.textContent="Move order issued to "+a.length+" creature(s)";draw();}
+  function issueMoveSelection(x,y){const group=selectedUnits();if(!group.length)return;const cols=Math.ceil(Math.sqrt(group.length)),spacing=54,rows=Math.ceil(group.length/cols),startX=x-((Math.min(cols,group.length)-1)*spacing)/2,startY=y-((rows-1)*spacing)/2;group.forEach((u,i)=>{issueMove(u,startX+(i%cols)*spacing,startY+Math.floor(i/cols)*spacing);});ui.status.textContent="Formation move order issued to "+group.length+" creatures";draw();}
   function issueMove(unit,x,y) { core.issueMove(unit,x,y,WORLD); }
   function update(dt) { const s={units,nextId};core.update(s,dt,WORLD);units=s.units;for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);updatePanel(); }
   function draw() {
@@ -58,6 +67,7 @@
     for(const selected of selectedUnits())if(selected.moveOrder){ctx.save();ctx.strokeStyle="rgba(255,242,168,.9)";ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(selected.targetX,selected.targetY,12,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
     worldView.end(ctx);
     worldView.drawOverlay(ctx,W,H);
+    if(selectionDrag){const a=worldView.worldToScreen(selectionDrag.x1,selectionDrag.y1,W,H),b=worldView.worldToScreen(selectionDrag.x2,selectionDrag.y2,W,H);ctx.save();ctx.fillStyle="rgba(91,190,232,.16)";ctx.strokeStyle="#8dd8ff";ctx.lineWidth=1.5;ctx.fillRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.restore();}
   }
   function updatePanel() {
     const selected=selectedUnits(),u=selected[0];
@@ -69,6 +79,8 @@
     if(ui.preview){const c=catalog.compose(ui.body.value,ui.head.value);ui.preview.textContent=c.name+" · "+c.maxHp+" HP · "+c.speed+" speed · "+c.attack+" attack · "+c.defense+" defence";}
   }
   function point(event){return worldView.screenToWorld(event,canvas,W,H);}
+  function clampPoint(x,y,r){return{x:Math.max(r,Math.min(WORLD.width-r,x)),y:Math.max(r,Math.min(WORLD.height-r,y))};}
+  function pointInSelection(p,b){return p.x>=Math.min(b.x1,b.x2)&&p.x<=Math.max(b.x1,b.x2)&&p.y>=Math.min(b.y1,b.y2)&&p.y<=Math.max(b.y1,b.y2);}
   function hitPlayer(p){return [...units].reverse().find(u=>u.team==="player"&&Math.hypot(u.x-p.x,u.y-p.y)<=u.radius+9)||null;}
 
   canvas.addEventListener("pointerdown",(event)=>{
@@ -78,6 +90,7 @@
     }
     if(event.button!==0)return;
     const p=point(event), hit=hitPlayer(p);
+    if(!hit){selectionDrag={id:event.pointerId,x1:p.x,y1:p.y,x2:p.x,y2:p.y,additive:event.shiftKey,moved:false,startX:event.clientX,startY:event.clientY};canvas.setPointerCapture(event.pointerId);event.preventDefault();draw();return;}
     if(hit){
       dragState={id:event.pointerId,unit:hit,offsetX:hit.x-p.x,offsetY:hit.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
       canvas.setPointerCapture(event.pointerId); updatePanel(); draw();
@@ -89,6 +102,7 @@
       worldView.panBy((event.clientX-panPointer.x)*W/rect.width,(event.clientY-panPointer.y)*H/rect.height,W,H);
       panPointer.x=event.clientX; panPointer.y=event.clientY; draw(); return;
     }
+    if(selectionDrag&&selectionDrag.id===event.pointerId&&(event.buttons&1)){const p=point(event);selectionDrag.x2=p.x;selectionDrag.y2=p.y;selectionDrag.moved=Math.hypot(event.clientX-selectionDrag.startX,event.clientY-selectionDrag.startY)>5;draw();return;}
     if(dragState&&dragState.id===event.pointerId&&(event.buttons&1)){
       const p=point(event);
       if(Math.hypot(event.clientX-dragState.startX,event.clientY-dragState.startY)>3)dragState.moved=true;
@@ -103,6 +117,7 @@
   function finishPointer(event){
     if(panPointer&&panPointer.id===event.pointerId){if(panPointer.button===0)suppressClick=true;panPointer=null;}
     if(dragState&&dragState.id===event.pointerId){suppressClick=dragState.moved;dragState=null;}
+    if(selectionDrag&&selectionDrag.id===event.pointerId){const b=selectionDrag;if(b.moved){if(!b.additive)selectedIds.clear();for(const u of units)if(u.team==="player"&&pointInSelection(u,b))selectedIds.add(u.id);suppressClick=true;}selectionDrag=null;updatePanel();draw();}
   }
   canvas.addEventListener("pointerup",finishPointer);
   canvas.addEventListener("pointercancel",finishPointer);
@@ -122,7 +137,7 @@
   },{passive:false});
   window.addEventListener("keydown",(e)=>{if(e.code==="Space"&&!e.repeat){spaceDown=true;if(e.target===document.body)e.preventDefault();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a"&&!["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)){e.preventDefault();selectedIds=new Set(units.filter(u=>u.team==="player").map(u=>u.id));updatePanel();draw();}if(e.key==="Escape"){selectOnly(null);updatePanel();draw();}});
   window.addEventListener("keyup",(e)=>{if(e.code==="Space")spaceDown=false;});
-  window.addEventListener("blur",()=>{spaceDown=false;panPointer=null;dragState=null;});
+  window.addEventListener("blur",()=>{spaceDown=false;panPointer=null;dragState=null;selectionDrag=null;});
 
   ui.zoomIn.addEventListener("click",()=>{worldView.zoomBy(1.2,W/2,H/2,W,H);draw();});
   ui.zoomOut.addEventListener("click",()=>{worldView.zoomBy(1/1.2,W/2,H/2,W,H);draw();});
@@ -156,5 +171,6 @@
     if(!paused){accumulator+=delta;while(accumulator>=STEP){update(STEP);accumulator-=STEP;}}
     draw();requestAnimationFrame(frame);
   }
-  worldView.resetCamera(W,H);reset();requestAnimationFrame(frame);
+  worldView.resetCamera(W,H);reset();resizeCanvasForDisplay();requestAnimationFrame(frame);
+  window.CreatureGameDebug={getUnits:()=>units.map(u=>({...u})),getSelectedIds:()=>[...selectedIds],selectAll:()=>{selectedIds=new Set(units.filter(u=>u.team==="player").map(u=>u.id));updatePanel();draw();},issueMoveSelection,worldToScreen:(x,y)=>worldView.worldToScreen(x,y,W,H)};
 })();
