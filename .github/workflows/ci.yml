@@ -33,11 +33,15 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check prototype/src/main.js
+          node --check prototype/src/game-core.js
           node --check prototype/src/creature-catalog.js
           node --check prototype/src/world-view.js
           node --check prototype/src/webgpu-renderer.js
           node --check prototype/src/webgpu-capability.js
           node --check prototype/src/webgpu-test.js
+
+      - name: Run gameplay and persistence tests
+        run: node --test tests/game-core.test.js
 
       - name: Package static prototype
         run: |
