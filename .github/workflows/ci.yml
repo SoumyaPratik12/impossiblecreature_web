@@ -33,6 +33,7 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check prototype/src/main.js
+          node --check prototype/src/creature-catalog.js
           node --check prototype/src/world-view.js
           node --check prototype/src/webgpu-renderer.js
           node --check prototype/src/webgpu-capability.js
