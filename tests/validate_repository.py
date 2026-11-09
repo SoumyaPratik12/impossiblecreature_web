@@ -9,10 +9,15 @@ REQUIRED = [
     "README.md",
     "docs/architecture/OVERVIEW.md",
     "docs/research/PORTING_FEASIBILITY.md",
+    "docs/research/WEBGPU_SPIKE.md",
     "docs/decisions/ADR-0001-PORTING-STRATEGY.md",
     "prototype/index.html",
+    "prototype/webgpu-test.html",
     "prototype/style.css",
     "prototype/src/main.js",
+    "prototype/src/webgpu-capability.js",
+    "prototype/src/webgpu-test.js",
+    "wasm/hello.c",
 ]
 
 def main() -> int:
@@ -25,6 +30,9 @@ def main() -> int:
 
     html = (ROOT / "prototype/index.html").read_text(encoding="utf-8")
     js = (ROOT / "prototype/src/main.js").read_text(encoding="utf-8")
+    webgpu_html = (ROOT / "prototype/webgpu-test.html").read_text(encoding="utf-8")
+    webgpu_js = (ROOT / "prototype/src/webgpu-test.js").read_text(encoding="utf-8")
+
     if 'id="battlefield"' not in html:
         print("Prototype canvas element not found")
         return 1
@@ -33,6 +41,12 @@ def main() -> int:
         return 1
     if "localStorage" not in js:
         print("Expected prototype save/load implementation not found")
+        return 1
+    if 'id="webgpu-canvas"' not in webgpu_html or "webgpu-test.js" not in webgpu_html:
+        print("Standalone WebGPU test page is not wired to its script")
+        return 1
+    if "createRenderPipeline" not in webgpu_js or "requestAdapter" not in webgpu_js:
+        print("WebGPU test does not create an adapter and render pipeline")
         return 1
 
     print(f"Repository validation passed ({len(REQUIRED)} required files).")
