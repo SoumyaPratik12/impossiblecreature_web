@@ -49,8 +49,8 @@
   function reset() {
     units = [
       createUnit("player", 420, 430), createUnit("player", 510, 560),
-      createUnit("player", 390, 720), createUnit("enemy", 1930, 390),
-      createUnit("enemy", 2040, 600), createUnit("enemy", 1880, 790)
+      createUnit("player", 390, 720), createUnit("enemy", 1260, 390),
+      createUnit("enemy", 1340, 600), createUnit("enemy", 1230, 790)
     ];
     selectedId = null;
     updatePanel();
