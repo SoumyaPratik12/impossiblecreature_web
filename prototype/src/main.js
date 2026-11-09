@@ -55,7 +55,10 @@
     return {
       id: nextId++, team, x, y, radius: 15, hp: 100, maxHp: 100,
       speed: team === "player" ? 105 : 72,
+      attack: team === "player" ? 14 : 10,
+      defense: 2,
       targetX: x, targetY: y, attackCooldown: 0,
+      body: "wolf", head: "wolf",
       color: team === "player" ? "#55b9e8" : "#e8796e"
     };
   }
@@ -90,7 +93,7 @@
         if (distance(unit, enemy) > unit.radius + enemy.radius + 8) {
           moveToward(unit, enemy.x, enemy.y, dt);
         } else if (unit.attackCooldown <= 0) {
-          enemy.hp = Math.max(0, enemy.hp - 12);
+          enemy.hp = Math.max(0, enemy.hp - Math.max(1, unit.attack - enemy.defense));
           unit.attackCooldown = 0.8;
         }
       } else {
@@ -120,13 +123,15 @@
     if (!gpuRenderer) worldView.drawTerrain(ctx);
 
     for (const unit of units) {
-      ctx.beginPath();
-      ctx.fillStyle = unit.color;
-      ctx.arc(unit.x, unit.y, unit.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = selectedId === unit.id ? 3 : 1.5;
-      ctx.strokeStyle = selectedId === unit.id ? "#fff2a8" : "rgba(255,255,255,.65)";
-      ctx.stroke();
+      if (!gpuRenderer) {
+        ctx.beginPath();
+        ctx.fillStyle = unit.color;
+        ctx.arc(unit.x, unit.y, unit.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = selectedId === unit.id ? 3 : 1.5;
+        ctx.strokeStyle = selectedId === unit.id ? "#fff2a8" : "rgba(255,255,255,.65)";
+        ctx.stroke();
+      }
 
       ctx.fillStyle = "#0c171c";
       ctx.fillRect(unit.x - 17, unit.y - 25, 34, 5);
@@ -146,7 +151,7 @@
     worldView.end(ctx);
     worldView.drawOverlay(ctx, W, H);
     if (gpuRenderer) {
-      try { gpuRenderer.render(worldView.cameraState(), W, H, WORLD); }
+      try { gpuRenderer.render(worldView.cameraState(), W, H, WORLD, units); }
       catch (error) {
         gpuRenderer = null;
         gpuCanvas.hidden = true;
@@ -158,8 +163,8 @@
   function updatePanel() {
     const unit = selectedUnit();
     ui.selection.textContent = unit ? `Selected: ${unit.team} unit #${unit.id}` : "No unit selected";
-    ui.name.textContent = unit ? `${unit.team === "player" ? "Player" : "Opponent"} unit #${unit.id}` : "—";
-    ui.health.textContent = unit ? `${Math.ceil(unit.hp)} / ${unit.maxHp} HP` : "No unit selected";
+    ui.name.textContent = unit ? (unit.team === "player" ? "Player " : "Opponent ") + unit.body + "-" + unit.head + " #" + unit.id : "—";
+    ui.health.textContent = unit ? Math.ceil(unit.hp) + " / " + unit.maxHp + " HP · Speed " + unit.speed + " · Attack " + unit.attack + " · Defence " + unit.defense : "No unit selected";
     ui.healthFill.style.width = unit ? `${(unit.hp / unit.maxHp) * 100}%` : "0%";
     const playerCount = units.filter((u) => u.team === "player").length;
     const enemyCount = units.filter((u) => u.team === "enemy").length;
