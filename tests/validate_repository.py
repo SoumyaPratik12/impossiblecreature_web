@@ -50,7 +50,7 @@ def main() -> int:
     if "drawTerrain" not in world_js or "screenToWorld" not in world_js:
         print("World terrain or coordinate conversion implementation missing")
         return 1
-    if "\\\\ncanvas" in css or "#terrain-gpu" not in css or "#battlefield" not in css:
+    if "\\ncanvas" in css or "#terrain-gpu" not in css or "#battlefield" not in css:
         print("Layered terrain canvas styles are invalid or incomplete")
         return 1
     if "createRenderPipeline" not in gpu_js or "writeBuffer" not in gpu_js or "gpuRenderer.render" not in js:
