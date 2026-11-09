@@ -132,3 +132,12 @@ test("movement follows computed waypoints around an obstacle",()=>{
  for(let i=0;i<600;i++)core.update(s,1/60,world,[obstacle]);
  assert.ok(Math.hypot(u.x-1000,u.y-450)<8,"unit should reach its destination");
 });
+
+
+test("blocked move destinations are relocated to the nearest walkable point",()=>{
+ const obstacle={x:800,y:450,radius:60};
+ const unit={...core.createUnit("player",600,450,catalog.compose("wolf","wolf"),1,world),x:600,y:450};
+ const order=core.issueMove(unit,800,450,world,[obstacle]);
+ assert.ok(order);
+ assert.ok(Math.hypot(unit.targetX-obstacle.x,unit.targetY-obstacle.y)>=obstacle.radius+unit.radius+3);
+});
