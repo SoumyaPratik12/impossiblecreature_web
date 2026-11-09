@@ -92,6 +92,9 @@
     const p=point(event), hit=hitPlayer(p);
     if(!hit){selectionDrag={id:event.pointerId,x1:p.x,y1:p.y,x2:p.x,y2:p.y,additive:event.shiftKey,moved:false,startX:event.clientX,startY:event.clientY};canvas.setPointerCapture(event.pointerId);event.preventDefault();draw();return;}
     if(hit){
+      if(event.shiftKey){if(selectedIds.has(hit.id))selectedIds.delete(hit.id);else selectedIds.add(hit.id);}
+      else selectOnly(hit);
+      suppressClick=true;
       dragState={id:event.pointerId,unit:hit,offsetX:hit.x-p.x,offsetY:hit.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
       canvas.setPointerCapture(event.pointerId); updatePanel(); draw();
     }
