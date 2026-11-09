@@ -17,7 +17,7 @@ test("move order clamps destination and advances toward it",()=>{
  const s=core.createInitialState(catalog,world),u=s.units[0];
  core.issueMove(u,-100,9999,world);
  assert.equal(u.targetX,u.radius);assert.equal(u.targetY,world.height-u.radius);
- const before=u.x;core.update(s,0.1,world);assert.ok(u.x<before);
+ const before=Math.hypot(u.x-u.targetX,u.y-u.targetY);core.update(s,0.1,world);assert.ok(Math.hypot(u.x-u.targetX,u.y-u.targetY)<before);
 });
 test("simulation keeps units inside world and separates overlapping units",()=>{
  const s=core.createInitialState(catalog,world),a=s.units[0],b=s.units[1];
