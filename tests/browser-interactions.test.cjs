@@ -50,11 +50,13 @@ const assert = require("node:assert/strict");
     await page.mouse.click(box.x + target.x * box.width / 960, box.y + target.y * box.height / 560, { button: "right" });
     const moved = await page.evaluate(() => window.CreatureGameDebug.getUnits().filter(u => window.CreatureGameDebug.getSelectedIds().includes(u.id)));
     assert.ok(moved.length >= 2 && moved.every(u => u.moveOrder && u.path.length > 0), "right-click issues path-based group movement");
-    assert.ok(Math.max(...moved.map(u => u.targetY)) - Math.min(...moved.map(u => u.targetY)) < 1, "line formation assigns a shared row of destinations");
+    const a=moved[0],b=moved[1],dx=b.targetX-a.targetX,dy=b.targetY-a.targetY;
+    assert.ok(moved.every(u => Math.abs(dx*(u.targetY-a.targetY)-dy*(u.targetX-a.targetX)) < 2),
+      "line formation assigns collinear destinations in its travel direction");
     const size = await canvas.evaluate(el => ({ width:el.width, height:el.height }));
     assert.equal(size.width, 1920, "DPR=2 backing width");
     assert.equal(size.height, 1120, "DPR=2 backing height");
     assert.deepEqual(errors, [], "no uncaught browser errors");
-    console.log("Browser tests passed: click, shift-click, deselect, drag-box, save/load, high-DPI.");
+    console.log("Browser tests passed: selection, drag-box, formation movement, save/load, high-DPI.");
   } finally { if (browser) await browser.close(); server.kill("SIGTERM"); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
