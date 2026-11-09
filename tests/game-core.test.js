@@ -98,3 +98,37 @@ test("group movement destinations can be assigned without stacking units",()=>{
  group.forEach((u,i)=>core.issueMove(u,x-((Math.min(cols,group.length)-1)*spacing)/2+(i%cols)*spacing,y-((rows-1)*spacing)/2+Math.floor(i/cols)*spacing,world));
  assert.equal(new Set(group.map(u=>u.targetX+":"+u.targetY)).size,group.length);
 });
+
+
+test("A* routes around blocking obstacles and keeps waypoints in world bounds",()=>{
+ const obstacle={x:800,y:450,radius:65};
+ const route=core.findPath({x:600,y:450},{x:1000,y:450},world,[obstacle],40,16);
+ assert.ok(route.length>2,"route should detour around the obstacle");
+ assert.ok(route.every(p=>p.x>=16&&p.x<=world.width-16&&p.y>=16&&p.y<=world.height-16));
+ assert.ok(route.some(p=>Math.abs(p.y-450)>65),"route should leave the blocked direct line");
+});
+test("formation layouts produce distinct non-overlapping destination slots",()=>{
+ for(const formation of ["line","column","compact"]){
+  const slots=core.formationOffsets(8,formation,58);
+  assert.equal(slots.length,8);
+  assert.equal(new Set(slots.map(p=>p.x+":"+p.y)).size,8);
+ }
+ const line=core.formationOffsets(4,"line"),column=core.formationOffsets(4,"column");
+ assert.ok(line.every(p=>p.y===0)&&column.every(p=>p.x===0));
+});
+test("formation move assigns bounded, distinct destinations and computes paths",()=>{
+ const s=core.createInitialState(catalog,world),group=s.units.filter(u=>u.team==="player");
+ const slots=core.issueFormationMove(group,900,450,world,"line");
+ assert.equal(slots.length,group.length);
+ assert.equal(new Set(group.map(u=>u.targetX+":"+u.targetY)).size,group.length);
+ assert.ok(group.every(u=>u.moveOrder&&Array.isArray(u.path)&&u.path.length>0));
+ assert.ok(group.every(u=>u.targetX>=u.radius&&u.targetX<=world.width-u.radius));
+});
+test("movement follows computed waypoints around an obstacle",()=>{
+ const obstacle={x:800,y:450,radius:70};
+ const s={units:[{...core.createUnit("player",600,450,catalog.compose("wolf","wolf"),1,world),x:600,y:450}],nextId:2};
+ const u=s.units[0];core.issueMove(u,1000,450,world,[obstacle]);
+ assert.ok(u.path.length>2);
+ for(let i=0;i<600;i++)core.update(s,1/60,world,[obstacle]);
+ assert.ok(Math.hypot(u.x-1000,u.y-450)<8,"unit should reach its destination");
+});
