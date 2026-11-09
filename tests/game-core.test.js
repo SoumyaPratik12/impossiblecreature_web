@@ -141,3 +141,47 @@ test("blocked move destinations are relocated to the nearest walkable point",()=
  assert.ok(order);
  assert.ok(Math.hypot(unit.targetX-obstacle.x,unit.targetY-obstacle.y)>=obstacle.radius+unit.radius+3);
 });
+
+
+test("10, 20 and 50 unit formations receive unique walkable destinations",()=>{
+ for(const count of [10,20,50]){
+  const group=Array.from({length:count},(_,i)=>({
+   ...core.createUnit("player",100+(i%10)*42,90+Math.floor(i/10)*48,catalog.compose("wolf","wolf"),i+1,world)
+  }));
+  const assigned=core.issueFormationMove(group,920,450,world,"compact",core.DEFAULT_OBSTACLES);
+  assert.equal(assigned.length,count);
+  assert.ok(group.every((u,i)=>assigned[i]&&u.moveOrder&&u.path.length>0),count+" units should receive a valid route");
+  assert.ok(group.every(u=>!core.pointBlocked(u.targetX,u.targetY,u.radius,world,core.DEFAULT_OBSTACLES)));
+  for(let i=0;i<count;i++)for(let j=i+1;j<count;j++)
+   assert.ok(Math.hypot(group[i].targetX-group[j].targetX,group[i].targetY-group[j].targetY)>group[i].radius+group[j].radius+2,
+    "formation slots must not overlap");
+ }
+});
+test("moving units remain outside static obstacles during a large formation march",()=>{
+ const obstacles=[{x:700,y:440,radius:74},{x:850,y:510,radius:68},{x:1020,y:420,radius:62}];
+ const group=Array.from({length:20},(_,i)=>({
+  ...core.createUnit("player",100+(i%5)*46,200+Math.floor(i/5)*46,catalog.compose("wolf","wolf"),i+1,world)
+ }));
+ core.issueFormationMove(group,1300,450,world,"line",obstacles);
+ for(let tick=0;tick<900;tick++){
+  core.update({units:group},1/60,world,obstacles);
+  for(const u of group)assert.ok(!core.pointBlocked(u.x,u.y,u.radius,world,obstacles),"unit must not enter obstacle or leave map");
+ }
+});
+test("newly introduced obstacles trigger route replanning",()=>{
+ const u={...core.createUnit("player",500,450,catalog.compose("wolf","wolf"),1,world),x:500,y:450};
+ const state={units:[u],nextId:2},destination={x:1000,y:450};
+ core.issueMove(u,destination.x,destination.y,world,[]);
+ const dynamic=[{x:700,y:450,radius:65}];
+ for(let i=0;i<600;i++)core.update(state,1/60,world,dynamic);
+ assert.ok(!core.pointBlocked(u.x,u.y,u.radius,world,dynamic));
+ assert.ok(Math.hypot(u.x-destination.x,u.y-destination.y)<12,"unit should route around newly added obstacle");
+});
+test("crowded units separate without being pushed into rocks",()=>{
+ const obstacles=[{x:600,y:450,radius:70}];
+ const group=Array.from({length:12},(_,i)=>({
+  ...core.createUnit("player",520+(i%4)*8,380+Math.floor(i/4)*8,catalog.compose("wolf","wolf"),i+1,world)
+ }));
+ const state={units:group};core.update(state,1/30,world,obstacles);
+ for(const u of group)assert.ok(!core.pointBlocked(u.x,u.y,u.radius,world,obstacles));
+});
