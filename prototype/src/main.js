@@ -41,7 +41,7 @@
     worldView.drawTerrain(ctx);
     for (const u of units) {
       {
-        ctx.beginPath(); ctx.fillStyle=u.color; ctx.arc(u.x,u.y,u.radius,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.fillStyle=u.team==="player"?"#55b9e8":"#e8796e"; ctx.arc(u.x,u.y,u.radius,0,Math.PI*2); ctx.fill();
         ctx.lineWidth=1.5; ctx.strokeStyle="rgba(255,255,255,.65)"; ctx.stroke();
       }
       if (u.id===selectedId) {
