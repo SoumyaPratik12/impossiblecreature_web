@@ -1,7 +1,6 @@
 (() => {
   "use strict";
   const canvas = document.getElementById("battlefield");
-  const gpuCanvas = document.getElementById("terrain-gpu");
   const ctx = canvas && canvas.getContext("2d");
   if (!canvas || !ctx) return;
 
@@ -11,21 +10,9 @@
   if (!worldView || !catalog) throw new Error("Game modules failed to load");
   const WORLD = worldView.world;
   const status = document.getElementById("runtime-status");
-  let gpuRenderer = null;
-
-  if (gpuCanvas && window.CreatureWebGpu && navigator.gpu) {
-    window.CreatureWebGpu.create(gpuCanvas).then((renderer) => {
-      gpuRenderer = renderer;
-      status.textContent = "WebGPU renderer active";
-      draw();
-    }).catch((error) => {
-      gpuCanvas.hidden = true;
-      status.textContent = "Canvas renderer · " + error.message;
-    });
-  } else {
-    if (gpuCanvas) gpuCanvas.hidden = true;
-    status.textContent = "Canvas renderer active";
-  }
+  const gpuCanvas = document.getElementById("terrain-gpu");
+  if (gpuCanvas) gpuCanvas.hidden = true;
+  status.textContent = "Canvas renderer active · stable 2D scene";
 
   const el = (id) => document.getElementById(id);
   const ui = {
@@ -99,9 +86,9 @@
   function draw() {
     ctx.clearRect(0,0,W,H);
     worldView.begin(ctx,W,H);
-    if (!gpuRenderer) worldView.drawTerrain(ctx);
+    worldView.drawTerrain(ctx);
     for (const u of units) {
-      if (!gpuRenderer) {
+      {
         ctx.beginPath(); ctx.fillStyle=u.color; ctx.arc(u.x,u.y,u.radius,0,Math.PI*2); ctx.fill();
         ctx.lineWidth=1.5; ctx.strokeStyle="rgba(255,255,255,.65)"; ctx.stroke();
       }
@@ -121,10 +108,6 @@
     }
     worldView.end(ctx);
     worldView.drawOverlay(ctx,W,H);
-    if (gpuRenderer) {
-      try { gpuRenderer.render(worldView.cameraState(),W,H,WORLD,units); }
-      catch (error) { gpuRenderer=null; gpuCanvas.hidden=true; status.textContent="Canvas fallback · GPU unavailable"; }
-    }
   }
   function updatePanel() {
     const u=selectedUnit();
