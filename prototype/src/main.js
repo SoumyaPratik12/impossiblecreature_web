@@ -168,6 +168,7 @@
     const playerCount = units.filter((u) => u.team === "player").length;
     const enemyCount = units.filter((u) => u.team === "enemy").length;
     ui.status.textContent = `Player: ${playerCount} · Opponent: ${enemyCount}`;
+    if (ui.preview) { const c = window.CreatureCatalog.compose(ui.body.value, ui.head.value); ui.preview.textContent = c.name + " · " + c.maxHp + " HP · " + c.speed + " speed · " + c.attack + " attack · " + c.defense + " defence"; }
   }
 
   function pointerPosition(event) {
