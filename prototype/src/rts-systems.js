@@ -67,10 +67,6 @@ function update(state,dt,units,world){
   const target=units.filter(u=>u.team!==(b.team)&&u.hp>0&&Math.hypot(u.x-b.x,u.y-b.y)<=b.range).sort((a,c)=>a.hp-c.hp||a.id-c.id)[0];
   if(target){target.hp=Math.max(0,target.hp-(b.team==="enemy"?d.turretDamage:b.damage));b.cooldown=b.rate;}
  }
- for(const team of ["player","enemy"]){
-  const base=state.bases[team],hostile=units.filter(u=>u.team!==team&&u.hp>0&&Math.hypot(u.x-base.x,u.y-base.y)<u.radius+48);
-  for(const attacker of hostile){attacker.baseAttackCooldown=Math.max(0,(attacker.baseAttackCooldown||0)-dt);if(attacker.baseAttackCooldown<=0){base.hp=Math.max(0,base.hp-Math.max(2,attacker.attack));attacker.baseAttackCooldown=1;}}
- }
  state.buildings=state.buildings.filter(b=>b.hp>0);
  if(state.bases.player.hp<=0)state.result="defeat";else if(state.bases.enemy.hp<=0)state.result="victory";
  return state;
