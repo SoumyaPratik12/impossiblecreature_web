@@ -225,7 +225,7 @@ test("multiple selected creatures independently pursue and attack one target",()
  }));
  const target={...core.createUnit("enemy",570,410,catalog.compose("wolf","wolf"),20,world)};
  const state={units:[...attackers,target],nextId:21};
- assert.equal(core.issueAttackTarget(attackers,target.id,world),true);
+ assert.equal(core.issueAttackTarget(attackers,target,world),true);
  assert.ok(attackers.every(u=>u.attackTargetId===target.id));
  const before=target.hp;
  for(let i=0;i<900&&state.units.some(u=>u.id===target.id);i++)core.update(state,1/60,world,[]);
