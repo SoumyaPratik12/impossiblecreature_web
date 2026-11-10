@@ -67,3 +67,16 @@ The pathfinder supports changing circular obstacle maps and local collision-safe
 ### Movement stress coverage
 
 Automated simulation tests cover 10-, 20-, and 50-unit formation orders, obstacle-safe movement, dynamic obstacle insertion and route replanning, and crowded-unit separation. Browser interaction tests verify the formation selector and right-click group-order flow. These tests establish regression coverage for the current prototype; they are not a substitute for profiling on target hardware or a full RTS navigation benchmark.
+
+
+## Priority 3 gameplay improvements
+
+- The simulation builds per-tick unit, team and attack-target lookup tables to reduce repeated roster scans.
+- Unit separation uses a deterministic spatial broad phase before collision resolution, reducing unnecessary all-pairs checks in sparse battles.
+- Opponent creatures now use a larger detection radius and autonomously acquire and pursue nearby player creatures; player units retain their shorter passive engagement radius.
+- Canvas units use original body/head silhouettes, team palettes, facing direction, and movement bobbing. These are procedural 2D representations, not imported game assets or 3D models.
+- Automated coverage includes multi-target combat, target reassignment, enemy detection, and a 200-unit simulation stability fixture.
+
+### Current limitations after Priority 3
+
+The 200-unit test is a deterministic simulation regression fixture, not a hardware performance certification. A dedicated browser benchmark on target devices is still required to set frame-time budgets. Enemy AI currently provides detection and pursuit with automatic combat; patrol routes, retreat, tactical formations, difficulty profiles, and strategic objectives remain future work. Creature visuals are procedural 2D silhouettes; skeletal animation and 3D geometry are not implemented.
