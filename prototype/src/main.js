@@ -52,7 +52,7 @@
     const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;
     rts.update(rtsState,dt,units,WORLD);
     for(const spec of rts.drainSpawns(rtsState)){const p=core.findSpawn(units,spec.team==="player"?rtsState.bases.player.x+65:rtsState.bases.enemy.x-65,spec.team==="player"?450:450,catalog.compose(spec.body,spec.head).radius,WORLD);if(p){const unit=createUnit(spec.team,p.x,p.y,catalog.compose(spec.body,spec.head));units.push(unit);}}
-    enemyThink+=dt;if(enemyThink>5){enemyThink=0;if(rts.queueCreature(rtsState,"enemy","wolf","wolf")&&rtsState.queues.enemy.length===1){}if(rtsState.buildings.filter(b=>b.team==="enemy"&&b.type==="turret").length<2)rts.build(rtsState,"enemy","turret",rtsState.bases.enemy.x-150,450+(rtsState.buildings.length%2?115:-115));}
+    enemyThink+=dt;if(enemyThink>5){enemyThink=0;if(!rtsState.buildings.some(b=>b.team==="enemy"&&b.type==="barracks"))rts.build(rtsState,"enemy","barracks",rtsState.bases.enemy.x-125,450);else{rts.queueCreature(rtsState,"enemy","wolf","wolf");if(rtsState.buildings.filter(b=>b.team==="enemy"&&b.type==="turret").length<2)rts.build(rtsState,"enemy","turret",rtsState.bases.enemy.x-150,450+(rtsState.buildings.length%2?115:-115));}}
     if(rtsState.result&&!paused){paused=true;ui.pause.textContent="Resume";ui.status.textContent=rtsState.result==="victory"?"Victory — enemy base destroyed":"Defeat — your base was destroyed";}
     for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);
     for(const u of units)if(u.moveOrder)u.animPhase=(u.animPhase||0)+dt*10;
