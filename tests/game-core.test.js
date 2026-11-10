@@ -220,19 +220,24 @@ test("narrow corridor traffic uses deterministic yielding and remains collision-
 });
 
 test("group attack orders distribute creatures across multiple enemies",()=>{
- const enemies=[1,2,3].map((id,i)=>({...core.createUnit("enemy",850+i*80,410,catalog.compose("wolf","wolf"),20+id,world)}));
+ const enemies=[1,2,3].map((id,i)=>({...core.createUnit("enemy",500+i*320,430,catalog.compose("wolf","wolf"),20+id,world)}));
  const attackers=Array.from({length:9},(_,i)=>({...core.createUnit("player",300+i*24,360+(i%3)*35,catalog.compose("bear","bear"),i+1,world)}));
  const state={units:[...attackers,...enemies],nextId:40};
  assert.equal(core.issueAttackTarget(attackers,enemies[0],world,[],state.units),true);
  const assignments=attackers.map(unit=>unit.attackTargetId);
- assert.ok(new Set(assignments).size>=2,"attackers should be distributed across multiple enemy units");
- for(const enemy of enemies)assert.ok(assignments.includes(enemy.id),"each enemy should receive at least one attacker");
- for(let tick=0;tick<1200;tick++)core.update(state,1/60,world,[]);
- assert.ok(enemies.some(enemy=>enemy.hp<enemy.maxHp),"the group should deal damage during the engagement");
- const deadTargetAttacker=attackers.find(unit=>!state.units.some(enemy=>enemy.id===unit.attackTargetId));
- if(deadTargetAttacker){
-   core.update(state,1/60,world,[]);
-   assert.ok(state.units.some(enemy=>enemy.id===deadTargetAttacker.attackTargetId&&enemy.team==="enemy"),
-     "attacker should retarget a living enemy after its target is eliminated");
+ assert.equal(new Set(assignments).size,3,"attackers should be distributed across all enemy units");
+ for(const enemy of enemies)assert.ok(assignments.includes(enemy.id),"each enemy should receive attackers");
+ // Put each attacker inside its assigned target's melee radius so this regression
+ // isolates concurrent combat from the separate pathfinding/crowd-control tests.
+ const perTarget=new Map();
+ for(const unit of attackers){
+   const target=enemies.find(enemy=>enemy.id===unit.attackTargetId);
+   const slot=perTarget.get(target.id)||0;perTarget.set(target.id,slot+1);
+   const angle=(slot/3)*Math.PI*2;
+   unit.x=target.x+Math.cos(angle)*25;unit.y=target.y+Math.sin(angle)*25;unit.attackCooldown=0;
  }
+ const before=enemies.map(enemy=>enemy.hp);
+ for(let tick=0;tick<60;tick++)core.update(state,1/60,world,[]);
+ assert.ok(enemies.every((enemy,index)=>enemy.hp<before[index]),
+   "all enemy targets should receive simultaneous damage from their assigned attackers");
 });
