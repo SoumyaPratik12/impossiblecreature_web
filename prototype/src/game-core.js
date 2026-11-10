@@ -95,15 +95,17 @@
     else {const cols=Math.ceil(Math.sqrt(count)),rows=Math.ceil(count/cols);for(let i=0;i<count;i++)offsets.push({x:(i%cols-(Math.min(cols,count)-1)/2)*spacing,y:(Math.floor(i/cols)-(rows-1)/2)*spacing});}
     return offsets;
   }
-  function attackTargetFor(unit,units,enemyTeam,maxRange=Infinity) {
-    const enemies=units.filter(candidate=>candidate.team===enemyTeam&&candidate.hp>0&&distance(unit,candidate)<=maxRange);
-    if(!enemies.length)return null;
-    const counts=new Map(enemies.map(enemy=>[enemy.id,units.filter(other=>other.hp>0&&other.team===unit.team&&other.attackTargetId===enemy.id).length]));
-    const least=Math.min(...counts.values());
-    const choices=enemies.filter(enemy=>counts.get(enemy.id)===least);
-    // Stable pseudo-random tie-breaking: varied target distribution without
-    // frame-to-frame target churn or a dependency on nondeterministic RNG.
-    const hash=(unit.id*1103515245+Math.floor((unit.id+enemyTeam.length)*12345))>>>0;
+  function attackTargetFor(unit,enemies,maxRange=Infinity,counts=null) {
+    let least=Infinity,choices=[];
+    for(const candidate of enemies){
+      if(candidate.hp<=0)continue;
+      if(distance(unit,candidate)>maxRange)continue;
+      const count=counts?.get(candidate.id)||0;
+      if(count<least){least=count;choices.length=0;choices.push(candidate);}
+      else if(count===least)choices.push(candidate);
+    }
+    if(!choices.length)return null;
+    const hash=(Math.imul(unit.id,1103515245)+Math.imul(unit.id+choices.length,12345))>>>0;
     return choices[hash%choices.length];
   }
   function issueAttackTarget(units,target,world,obstacles=DEFAULT_OBSTACLES,allUnits=units) {
@@ -221,21 +223,43 @@
   function update(state,dt,world,obstacles=DEFAULT_OBSTACLES) {
     if(!finite(dt)||dt<0||dt>1)throw new Error("Invalid simulation delta");
     const units=state.units;
+    // Build lookup tables once per simulation tick instead of repeatedly
+    // scanning the complete roster for IDs, teams and target assignments.
+    const aliveById=new Map(),enemiesByTeam=new Map(),attackersByTarget=new Map();
+    for(const unit of units){
+      if(unit.hp<=0)continue;
+      aliveById.set(unit.id,unit);
+      if(!enemiesByTeam.has(unit.team))enemiesByTeam.set(unit.team,[]);
+      enemiesByTeam.get(unit.team).push(unit);
+      if(unit.attackTargetId){
+        if(!attackersByTarget.has(unit.attackTargetId))attackersByTarget.set(unit.attackTargetId,[]);
+        attackersByTarget.get(unit.attackTargetId).push(unit);
+      }
+    }
+    for(const list of attackersByTarget.values())list.sort((a,b)=>a.id-b.id);
+    const targetCounts=new Map([...attackersByTarget].map(([id,list])=>[id,list.length]));
     for(const u of units) {
       if(u.hp<=0)continue;
       u.attackCooldown=Math.max(0,u.attackCooldown-dt);
       u.yieldCooldown=Math.max(0,(u.yieldCooldown||0)-dt);
-      let enemy=units.find(e=>e.id===u.attackTargetId&&e.team!==u.team&&e.hp>0)||null;
+      let enemy=aliveById.get(u.attackTargetId)||null;
+      if(enemy&&enemy.team===u.team)enemy=null;
       if(u.attackTargetId&&!enemy){u.attackTargetId=null;u.path=[];u.pathIndex=0;u.attackRepathTimer=0;}
       if(!enemy){
-        const enemyTeam=units.find(candidate=>candidate.team!==u.team&&candidate.hp>0)?.team;
-        enemy=enemyTeam?attackTargetFor(u,units,enemyTeam,u.attackCommand?Infinity:125):null;
-        if(enemy){u.attackTargetId=enemy.id;u.attackRepathTimer=0;u.path=[];u.pathIndex=0;}
+        const enemyTeam=u.team==="player"?"enemy":"player";
+        const maxDetection=u.attackCommand?Infinity:(u.team==="enemy"?420:125);
+        enemy=attackTargetFor(u,enemiesByTeam.get(enemyTeam)||[],maxDetection,targetCounts);
+        if(enemy){
+          u.attackTargetId=enemy.id;u.attackRepathTimer=0;u.path=[];u.pathIndex=0;
+          targetCounts.set(enemy.id,(targetCounts.get(enemy.id)||0)+1);
+          if(!attackersByTarget.has(enemy.id))attackersByTarget.set(enemy.id,[]);
+          attackersByTarget.get(enemy.id).push(u);
+        }
         else if(u.attackCommand){u.attackCommand=false;u.moveOrder=false;}
       }
       let waypoint=null;
       if(enemy){
-        const attackers=units.filter(other=>other.hp>0&&other.team===u.team&&other.attackTargetId===enemy.id).sort((a,b)=>a.id-b.id);
+        const attackers=attackersByTarget.get(enemy.id)||[u];
         const slot=Math.max(0,attackers.findIndex(other=>other.id===u.id));
         const angle=(slot/Math.max(1,attackers.length))*Math.PI*2+(u.id%7)*0.13;
         const approachRadius=u.radius+enemy.radius+9;
@@ -314,8 +338,22 @@
     // checks terrain so separation cannot push a creature into a rock or outside the map.
     for(let pass=0;pass<4;pass++){
       let changed=false;
-      for(let i=0;i<units.length;i++)for(let j=i+1;j<units.length;j++){
-        const a=units[i],b=units[j];if(a.hp<=0||b.hp<=0)continue;
+      const cellSize=72,buckets=new Map(),pairs=[];
+      for(const unit of units)if(unit.hp>0){
+        const cx=Math.floor(unit.x/cellSize),cy=Math.floor(unit.y/cellSize),key=cx+","+cy;
+        if(!buckets.has(key))buckets.set(key,[]);
+        buckets.get(key).push(unit);
+      }
+      for(const [key,list] of buckets){
+        const parts=key.split(",").map(Number),cx=parts[0],cy=parts[1];
+        for(let ox=-1;ox<=1;ox++)for(let oy=-1;oy<=1;oy++){
+          const adjacent=buckets.get((cx+ox)+","+(cy+oy));if(!adjacent)continue;
+          for(const a of list)for(const b of adjacent)if(a.id<b.id)pairs.push([a,b]);
+        }
+      }
+      pairs.sort((p,q)=>p[0].id-q[0].id||p[1].id-q[1].id);
+      for(const [a,b] of pairs){
+        if(a.hp<=0||b.hp<=0)continue;
         let dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy),minimum=a.radius+b.radius+5;
         if(len>=minimum)continue;
         if(len<0.001){const angle=((a.id*31+b.id*17)%360)*Math.PI/180;dx=Math.cos(angle);dy=Math.sin(angle);len=1;}
