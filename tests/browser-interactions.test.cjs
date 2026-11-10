@@ -53,6 +53,20 @@ const assert = require("node:assert/strict");
     const a=moved[0],b=moved[1],dx=b.targetX-a.targetX,dy=b.targetY-a.targetY;
     assert.ok(moved.every(u => Math.abs(dx*(u.targetY-a.targetY)-dy*(u.targetX-a.targetX)) < 2),
       "line formation assigns collinear destinations in its travel direction");
+
+    await page.evaluate(() => {
+      const debug=window.CreatureGameDebug;
+      const friendly=debug.getUnits().filter(u=>u.team==="player");
+      const enemy=debug.getUnits().find(u=>u.team==="enemy");
+      debug.selectAll();
+      const point=debug.worldToScreen(enemy.x,enemy.y);
+      const rect=document.querySelector("#battlefield").getBoundingClientRect();
+      const event=new MouseEvent("contextmenu",{bubbles:true,cancelable:true,clientX:rect.left+point.x*rect.width/960,clientY:rect.top+point.y*rect.height/560});
+      document.querySelector("#battlefield").dispatchEvent(event);
+    });
+    const attackOrders=await page.evaluate(()=>window.CreatureGameDebug.getUnits().filter(u=>u.team==="player"));
+    assert.ok(attackOrders.every(u=>u.attackTargetId===attackOrders[0].attackTargetId),
+      "right-clicking an enemy should assign a shared attack target to the selected group");
     const size = await canvas.evaluate(el => ({ width:el.width, height:el.height }));
     assert.equal(size.width, 1920, "DPR=2 backing width");
     assert.equal(size.height, 1120, "DPR=2 backing height");
