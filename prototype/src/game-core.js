@@ -141,14 +141,20 @@
     if(len<1)return false;
     const px=-dy/len,py=dx/len,side=(unit.yieldSide||((unit.id%2)?1:-1));
     const offset=Math.max(44,unit.radius*2+14);
-    for(const sign of [side,-side]){
-      const candidate={x:unit.x+px*offset*sign,y:unit.y+py*offset*sign};
+    // In a true one-lane passage there may be no lateral room. The yielding
+    // unit first backs up along its incoming route, then tries either shoulder.
+    const candidates=[
+      {x:unit.x-dx/len*offset,y:unit.y-dy/len*offset},
+      {x:unit.x+px*offset*side,y:unit.y+py*offset*side},
+      {x:unit.x-px*offset*side,y:unit.y-py*offset*side}
+    ];
+    for(const candidate of candidates){
       if(pointBlocked(candidate.x,candidate.y,unit.radius,world,obstacles))continue;
       if(units.some(other=>other!==unit&&other.hp>0&&distance(candidate,other)<unit.radius+other.radius+8))continue;
       if(!segmentClear(unit,candidate,unit.radius,world,obstacles))continue;
       const route=findPath(candidate,{x:unit.targetX,y:unit.targetY},world,obstacles,40,unit.radius);
       if(!route.length)continue;
-      unit.path=[candidate,...route];unit.pathIndex=0;unit.yieldSide=-sign;
+      unit.path=[candidate,...route];unit.pathIndex=0;unit.yieldSide=-side;
       unit.yieldCount=(unit.yieldCount||0)+1;unit.stuckTime=0;
       return true;
     }
