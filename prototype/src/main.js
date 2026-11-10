@@ -121,7 +121,7 @@
     const playerCount=units.reduce((n,x)=>n+(x.team==="player"),0),enemyCount=units.length-playerCount;
     ui.status.textContent="Player: "+playerCount+" · Opponent: "+enemyCount+" · "+(rtsState.result||"Enemy strategy active");
     if(ui.economy){const p=rtsState.resources.player;ui.economy.textContent="Wood "+Math.floor(p.timber)+" · Ore "+Math.floor(p.ore)+" | Storage "+Math.floor(p.timber+p.ore)+"/"+rtsState.storage.player.capacity+" | Workers "+rtsState.workers.filter(w=>w.team==="player").length+" | Bases "+Math.ceil(rtsState.bases.player.hp)+"/"+rtsState.bases.player.maxHp+" : "+Math.ceil(rtsState.bases.enemy.hp)+"/"+rtsState.bases.enemy.maxHp+" | Queue "+rtsState.queues.player.length; }
-    if(ui.preview){const c=catalog.compose(ui.body.value,ui.head.value,ui.domain?.value||"land");ui.preview.textContent=c.name+" · "+c.domain+" · "+" · "+c.maxHp+" HP · "+c.speed+" speed · "+c.attack+" attack · "+c.defense+" defence";}
+    if(ui.preview){const c=catalog.compose(ui.body.value,ui.head.value,ui.domain?.value||"land");ui.preview.textContent=c.name+" · "+c.domain+" · "+c.maxHp+" HP · "+c.speed+" speed · "+c.attack+" attack · "+c.defense+" defence";}
   }
   function point(event){return worldView.screenToWorld(event,canvas,W,H);}
   function clampPoint(x,y,r){return{x:Math.max(r,Math.min(WORLD.width-r,x)),y:Math.max(r,Math.min(WORLD.height-r,y))};}
