@@ -57,7 +57,7 @@
     const player=u.team==="player",base=player?"#55b9e8":"#e8796e";
     const moving=u.moveOrder;
     const bob=moving?Math.sin(u.animPhase||0)*1.8:0;
-    const target=u.attackTargetId?units.find(e=>e.id===u.attackTargetId):(u.moveOrder?{x:u.targetX,y:u.targetY}:null);
+    const target=u.attackTargetId?unitById.get(u.attackTargetId):(u.moveOrder?{x:u.targetX,y:u.targetY}:null);
     const angle=target?Math.atan2(target.y-u.y,target.x-u.x):0;
     ctx.save();ctx.translate(u.x,u.y+bob);ctx.rotate(angle);
     ctx.fillStyle=base;ctx.strokeStyle=player?"#c8f0ff":"#ffd2c9";ctx.lineWidth=1.6;
@@ -85,6 +85,7 @@
   }
   function draw() {
     ctx.clearRect(0,0,W,H);
+    const unitById=new Map(units.map(unit=>[unit.id,unit]));
     worldView.begin(ctx,W,H);
     worldView.drawTerrain(ctx);
     for(const o of core.DEFAULT_OBSTACLES){ctx.save();ctx.fillStyle="#18251f";ctx.strokeStyle="#78836a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(o.x,o.y,o.radius,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle="rgba(190,196,157,.16)";ctx.beginPath();ctx.arc(o.x-o.radius*.25,o.y-o.radius*.25,o.radius*.38,0,Math.PI*2);ctx.fill();ctx.restore();}
