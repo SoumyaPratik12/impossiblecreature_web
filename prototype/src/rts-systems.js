@@ -32,7 +32,7 @@ function createState(difficulty="normal"){
 function canAfford(resources,cost){return resources.timber>=cost.timber&&resources.ore>=cost.ore;}
 function spend(resources,cost){if(!canAfford(resources,cost))return false;resources.timber-=cost.timber;resources.ore-=cost.ore;return true;}
 function assignWorkers(state,team,nodeId=null){
- const workers=state.workers.filter(w=>w.team===team&&w.role==="collector");
+ const workers=state.workers.filter(w=>w.team===team);
  const nodes=state.nodes.filter(n=>n.amount>0&&(!nodeId||n.id===nodeId));
  if(!nodes.length)return 0;
  workers.forEach((w,i)=>{const n=nodeId?nodes[0]:nodes.slice().sort((a,b)=>Math.hypot(w.x-a.x,w.y-a.y)-Math.hypot(w.x-b.x,w.y-b.y))[i%nodes.length];w.nodeId=n.id;w.state="to-resource";});
