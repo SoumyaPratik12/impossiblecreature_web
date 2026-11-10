@@ -47,17 +47,49 @@
   function issueMoveSelection(x,y){const group=selectedUnits();if(!group.length)return;const formation=ui.formation?.value||"compact";core.issueFormationMove(group,x,y,WORLD,formation);ui.status.textContent=formation+" formation order issued to "+group.length+" creatures";draw();}
   function issueMove(unit,x,y) { core.issueMove(unit,x,y,WORLD); }
   let panelRefresh=0;
-  function update(dt) { const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);panelRefresh+=dt;if(panelRefresh>=0.1){panelRefresh=0;updatePanel();} }
+  function update(dt) {
+    const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;
+    for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);
+    for(const u of units)if(u.moveOrder)u.animPhase=(u.animPhase||0)+dt*10;
+    panelRefresh+=dt;if(panelRefresh>=0.1){panelRefresh=0;updatePanel();}
+  }
+  function drawCreature(u) {
+    const player=u.team==="player",base=player?"#55b9e8":"#e8796e";
+    const moving=u.moveOrder;
+    const bob=moving?Math.sin(u.animPhase||0)*1.8:0;
+    const target=u.attackTargetId?units.find(e=>e.id===u.attackTargetId):(u.moveOrder?{x:u.targetX,y:u.targetY}:null);
+    const angle=target?Math.atan2(target.y-u.y,target.x-u.x):0;
+    ctx.save();ctx.translate(u.x,u.y+bob);ctx.rotate(angle);
+    ctx.fillStyle=base;ctx.strokeStyle=player?"#c8f0ff":"#ffd2c9";ctx.lineWidth=1.6;
+    ctx.beginPath();
+    if(u.body==="bear")ctx.ellipse(0,0,u.radius*1.12,u.radius*.88,0,0,Math.PI*2);
+    else if(u.body==="eagle")ctx.ellipse(0,0,u.radius*1.2,u.radius*.56,0,0,Math.PI*2);
+    else ctx.ellipse(0,0,u.radius*1.08,u.radius*.68,0,0,Math.PI*2);
+    ctx.fill();ctx.stroke();
+    if(u.body==="eagle"){
+      ctx.beginPath();ctx.moveTo(-u.radius*.25,-u.radius*.25);ctx.lineTo(-u.radius*.85,-u.radius*1.15);ctx.lineTo(u.radius*.35,-u.radius*.42);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(-u.radius*.25,u.radius*.25);ctx.lineTo(-u.radius*.85,u.radius*1.15);ctx.lineTo(u.radius*.35,u.radius*.42);ctx.closePath();ctx.fill();
+    }
+    const hx=u.radius*.58,hr=u.body==="bear"?u.radius*.58:u.radius*.48;
+    ctx.fillStyle=player?"#9bdcf5":"#f5b0a5";ctx.beginPath();ctx.arc(hx,0,hr,0,Math.PI*2);ctx.fill();ctx.stroke();
+    if(u.head==="eagle"){
+      ctx.fillStyle="#e7bd62";ctx.beginPath();ctx.moveTo(hx+hr*.72,0);ctx.lineTo(hx+hr*1.75,hr*.22);ctx.lineTo(hx+hr*.72,hr*.48);ctx.closePath();ctx.fill();
+    }else{
+      ctx.fillStyle=player?"#d8f5ff":"#ffe0d8";
+      const snout=u.head==="bear"?hr*.52:hr*.9;
+      ctx.beginPath();ctx.ellipse(hx+hr*.65,0,snout,hr*.38,0,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle="#15202a";ctx.beginPath();ctx.arc(hx+hr*.25,-hr*.2,Math.max(1.5,hr*.12),0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    if(u.attackTargetId){ctx.save();ctx.strokeStyle=player?"rgba(126,213,255,.65)":"rgba(255,170,150,.65)";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(u.x,u.y,u.radius+4,0,Math.PI*2);ctx.stroke();ctx.restore();}
+  }
   function draw() {
     ctx.clearRect(0,0,W,H);
     worldView.begin(ctx,W,H);
     worldView.drawTerrain(ctx);
     for(const o of core.DEFAULT_OBSTACLES){ctx.save();ctx.fillStyle="#18251f";ctx.strokeStyle="#78836a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(o.x,o.y,o.radius,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle="rgba(190,196,157,.16)";ctx.beginPath();ctx.arc(o.x-o.radius*.25,o.y-o.radius*.25,o.radius*.38,0,Math.PI*2);ctx.fill();ctx.restore();}
     for (const u of units) {
-      {
-        ctx.beginPath(); ctx.fillStyle=u.team==="player"?"#55b9e8":"#e8796e"; ctx.arc(u.x,u.y,u.radius,0,Math.PI*2); ctx.fill();
-        ctx.lineWidth=1.5; ctx.strokeStyle="rgba(255,255,255,.65)"; ctx.stroke();
-      }
+      drawCreature(u);
       if (selectedIds.has(u.id)) {
         ctx.beginPath(); ctx.arc(u.x,u.y,u.radius+6,0,Math.PI*2);
         ctx.lineWidth=2.5; ctx.strokeStyle="#fff2a8"; ctx.stroke();
@@ -77,7 +109,8 @@
     ui.name.textContent=selected.length>1?selected.length+" creatures selected":u?(u.team==="player"?"Player ":"Opponent ")+u.body+"-"+u.head+" #"+u.id:"—";
     ui.health.textContent=selected.length>1?selected.length+" creatures ready for group commands":u?Math.ceil(u.hp)+" / "+u.maxHp+" HP · Speed "+u.speed+" · Attack "+u.attack+" · Defence "+u.defense:"Select a player creature";
     ui.healthFill.style.width=u?`${Math.max(0,u.hp/u.maxHp)*100}%`:"0%";
-    ui.status.textContent="Player: "+units.filter(x=>x.team==="player").length+" · Opponent: "+units.filter(x=>x.team==="enemy").length;
+    const playerCount=units.reduce((n,x)=>n+(x.team==="player"),0),enemyCount=units.length-playerCount;
+    ui.status.textContent="Player: "+playerCount+" · Opponent: "+enemyCount+" · "+(enemyCount?"Enemy AI active":"Victory — all opponents defeated");
     if(ui.preview){const c=catalog.compose(ui.body.value,ui.head.value);ui.preview.textContent=c.name+" · "+c.maxHp+" HP · "+c.speed+" speed · "+c.attack+" attack · "+c.defense+" defence";}
   }
   function point(event){return worldView.screenToWorld(event,canvas,W,H);}
