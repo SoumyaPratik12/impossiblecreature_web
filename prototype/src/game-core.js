@@ -155,7 +155,7 @@
       const route=findPath(candidate,{x:unit.targetX,y:unit.targetY},world,obstacles,40,unit.radius);
       if(!route.length)continue;
       unit.path=[candidate,...route];unit.pathIndex=0;unit.yieldSide=-side;
-      unit.yieldCount=(unit.yieldCount||0)+1;unit.stuckTime=0;
+      unit.yieldCount=(unit.yieldCount||0)+1;unit.yieldCooldown=2.5;unit.stuckTime=0;
       return true;
     }
     return false;
@@ -194,6 +194,7 @@
     for(const u of units) {
       if(u.hp<=0)continue;
       u.attackCooldown=Math.max(0,u.attackCooldown-dt);
+      u.yieldCooldown=Math.max(0,(u.yieldCooldown||0)-dt);
       let enemy=null;
       for(const e of units)if(e.team!==u.team&&e.hp>0&&distance(u,e)<(u.moveOrder?90:125)&&(!enemy||distance(u,e)<distance(u,enemy)))enemy=e;
       if(enemy&&distance(u,enemy)<=u.radius+enemy.radius+8){
@@ -210,7 +211,7 @@
       if(!waypoint)continue;
       // Detect approaching head-on traffic before physical contact. Stable unit-ID
       // priority prevents both creatures from choosing to yield at the same time.
-      if(u.moveOrder){
+      if(u.moveOrder&&u.yieldCooldown<=0){
         const ux=u.targetX-u.x,uy=u.targetY-u.y,ul=Math.hypot(ux,uy)||1;
         const opposing=units.find(other=>other!==u&&other.hp>0&&other.moveOrder&&other.id<u.id&&
           distance(u,other)<u.radius+other.radius+Math.max(u.speed,other.speed)*0.9&&
