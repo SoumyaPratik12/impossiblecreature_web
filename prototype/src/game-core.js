@@ -262,6 +262,19 @@
           for(const p of alternatives){const x=clamp(p[0],a.radius,world.width-a.radius),y=clamp(p[1],a.radius,world.height-a.radius);
             if(!pointBlocked(x,y,a.radius,world,obstacles)){a.x=x;a.y=y;changed=true;break;}}
         }
+        // If terrain prevented the symmetric split, give the higher-ID unit a
+        // deterministic lateral escape position. This is a bounded separation
+        // correction, not a teleport, and must clear terrain and every third unit.
+        if(distance(a,b)<minimum){
+          const sideX=-ny,sideY=nx,escape=minimum+6;
+          const candidates=[[b.x+sideX*escape,b.y+sideY*escape],[b.x-sideX*escape,b.y-sideY*escape]];
+          for(const p of candidates){
+            const x=clamp(p[0],b.radius,world.width-b.radius),y=clamp(p[1],b.radius,world.height-b.radius);
+            if(pointBlocked(x,y,b.radius,world,obstacles))continue;
+            if(units.some(other=>other!==a&&other!==b&&other.hp>0&&distance({x,y},other)<b.radius+other.radius+5))continue;
+            if(distance(a,{x,y})>=minimum){b.x=x;b.y=y;changed=true;break;}
+          }
+        }
       }
       if(!changed)break;
     }
