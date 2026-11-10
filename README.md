@@ -80,3 +80,10 @@ Automated simulation tests cover 10-, 20-, and 50-unit formation orders, obstacl
 ### Current limitations after Priority 3
 
 The 200-unit test is a deterministic simulation regression fixture, not a hardware performance certification. A dedicated browser benchmark on target devices is still required to set frame-time budgets. Enemy AI currently provides detection and pursuit with automatic combat; patrol routes, retreat, tactical formations, difficulty profiles, and strategic objectives remain future work. Creature visuals are procedural 2D silhouettes; skeletal animation and 3D geometry are not implemented.
+
+
+## Priority 3.4 — RTS gameplay systems
+
+The prototype now includes a resource economy with finite timber and ore deposits, worker assignment, timed creature production queues, base structures (barracks and defensive turrets), base health and victory/defeat detection. Easy, Normal and Hard profiles adjust opponent starting economy, resource collection rate and turret damage. The opponent also periodically queues creatures and attempts to construct defensive turrets.
+
+This is a first playable RTS systems layer, not yet a complete campaign-grade AI. Strategic expansion, scouting, tech trees, repair, persistent resource state in save files, and full enemy worker assignment remain follow-up work. The current RTS state is runtime-only and is not yet serialized by the existing save/load feature.
