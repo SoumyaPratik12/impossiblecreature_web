@@ -214,7 +214,7 @@
         const ux=u.targetX-u.x,uy=u.targetY-u.y,ul=Math.hypot(ux,uy)||1;
         const opposing=units.find(other=>other!==u&&other.hp>0&&other.moveOrder&&other.id<u.id&&
           distance(u,other)<u.radius+other.radius+Math.max(u.speed,other.speed)*0.9&&
-          ((ux/ul)*((other.targetX-other.x)/(Math.hypot(other.targetX-other.x,other.targetY-other.y)||1)+
+          (((ux/ul)*((other.targetX-other.x)/(Math.hypot(other.targetX-other.x,other.targetY-other.y)||1)+0)+
             (uy/ul)*((other.targetY-other.y)/(Math.hypot(other.targetX-other.x,other.targetY-other.y)||1)))<-0.55));
         if(opposing&&tryYieldForTraffic(u,units,world,obstacles))continue;
       }
