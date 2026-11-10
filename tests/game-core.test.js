@@ -218,3 +218,18 @@ test("narrow corridor traffic uses deterministic yielding and remains collision-
  assert.ok(maxStep<80,"yielding and separation must not teleport units");
  assert.ok(!a.moveOrder||!b.moveOrder,"at least one unit should complete after yielding");
 });
+
+test("multiple selected creatures independently pursue and attack one target",()=>{
+ const attackers=Array.from({length:4},(_,i)=>({
+  ...core.createUnit("player",360+i*42,380+(i%2)*42,catalog.compose("bear","bear"),i+1,world)
+ }));
+ const target={...core.createUnit("enemy",570,410,catalog.compose("wolf","wolf"),20,world)};
+ const state={units:[...attackers,target],nextId:21};
+ assert.equal(core.issueAttackTarget(attackers,target.id,world),true);
+ assert.ok(attackers.every(u=>u.attackTargetId===target.id));
+ const before=target.hp;
+ for(let i=0;i<900&&state.units.some(u=>u.id===target.id);i++)core.update(state,1/60,world,[]);
+ assert.ok(!state.units.some(u=>u.id===target.id)||target.hp<before,"the group should apply damage to the shared target");
+ assert.ok(attackers.filter(u=>u.attackCooldown>0||u.attackTargetId===target.id).length>=2,
+   "more than one attacker should participate in the engagement");
+});
