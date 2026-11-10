@@ -34,6 +34,7 @@ jobs:
         run: |
           node --check prototype/src/main.js
           node --check prototype/src/game-core.js
+          node --check prototype/src/rts-systems.js
           node --check prototype/src/creature-catalog.js
           node --check prototype/src/world-view.js
           node --check prototype/src/webgpu-renderer.js
@@ -41,7 +42,7 @@ jobs:
           node --check prototype/src/webgpu-test.js
 
       - name: Run gameplay and persistence tests
-        run: node --test tests/game-core.test.js
+        run: node --test tests/game-core.test.js tests/rts-systems.test.js
 
       - name: Run browser interaction tests
         run: |
