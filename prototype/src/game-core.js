@@ -201,9 +201,12 @@
       const beforeMove={x:u.x,y:u.y};
       u.x=px;u.y=py;
       if(u.moveOrder){
-        const moved=distance(beforeMove,u),progress=distance(u,{x:u.progressX??beforeMove.x,y:u.progressY??beforeMove.y});
-        if(moved>0.15&&progress>=2){u.progressX=u.x;u.progressY=u.y;u.stuckTime=0;}
-        else if(moved<0.15)u.stuckTime=(u.stuckTime||0)+dt;
+        const moved=distance(beforeMove,u);
+        const previousDistance=distance(beforeMove,{x:u.targetX,y:u.targetY});
+        const currentDistance=distance(u,{x:u.targetX,y:u.targetY});
+        const netProgress=previousDistance-currentDistance;
+        if(netProgress>Math.max(0.4,u.speed*dt*0.12)){u.progressX=u.x;u.progressY=u.y;u.stuckTime=0;}
+        else u.stuckTime=(u.stuckTime||0)+dt;
         if(u.stuckTime>=1.1){
           recoverStalledUnit(u,units,world,obstacles);
           u.stuckTime=0;u.progressX=u.x;u.progressY=u.y;
