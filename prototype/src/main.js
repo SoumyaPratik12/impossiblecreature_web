@@ -17,7 +17,8 @@
   const worldView = window.CreatureWorldView;
   const catalog = window.CreatureCatalog;
   const core = window.CreatureGameCore;
-  if (!worldView || !catalog || !core) throw new Error("Game modules failed to load");
+  const rts = window.CreatureRTS;
+  if (!worldView || !catalog || !core || !rts) throw new Error("Game modules failed to load");
   const WORLD = worldView.world;
   const status = document.getElementById("runtime-status");
   const gpuCanvas = document.getElementById("terrain-gpu");
@@ -31,16 +32,16 @@
     status: el("game-status"), name: el("unit-name"), health: el("unit-health"),
     healthFill: el("health-fill"), body: el("body-select"), head: el("head-select"),
     preview: el("creature-preview"), zoomIn: el("zoom-in"), zoomOut: el("zoom-out"),
-    resetView: el("reset-view"), formation: el("formation-select")
+    resetView: el("reset-view"), formation: el("formation-select"), gather:el("gather-button"), turret:el("turret-button"), barracks:el("barracks-button"), train:el("train-button"), difficulty:el("difficulty-select"), economy:el("economy-status")
   };
   const STORAGE_KEY = "creature-command-prototype-v3";
-  let units = [], selectedIds = new Set(), paused = false, nextId = 1;
+  let units = [], selectedIds = new Set(), paused = false, nextId = 1, rtsState=rts.createState("normal"), unitById=new Map(), enemyThink=0;
   let lastTime = 0, accumulator = 0;
   const STEP = 1 / 60, MAX_FRAME = 0.1;
   let panPointer = null, dragState = null, selectionDrag = null, suppressClick = false, spaceDown = false;
 
   function createUnit(team,x,y,blueprint) { return core.createUnit(team,x,y,blueprint||catalog.compose("wolf","wolf"),nextId++,WORLD); }
-  function reset() { const initial=core.createInitialState(catalog,WORLD);units=initial.units;nextId=initial.nextId;selectedIds.clear();paused=false;ui.pause.textContent="Pause";updatePanel(); }
+  function reset() { const initial=core.createInitialState(catalog,WORLD);units=initial.units;nextId=initial.nextId;selectedIds.clear();paused=false;rtsState=rts.createState(ui.difficulty?.value||"normal");enemyThink=0;ui.pause.textContent="Pause";updatePanel(); }
   function selectedUnit() { return units.find(u=>selectedIds.has(u.id))||null; }
   function selectedUnits(){return units.filter(u=>selectedIds.has(u.id));}
   function selectOnly(u){selectedIds.clear();if(u)selectedIds.add(u.id);}
@@ -49,6 +50,10 @@
   let panelRefresh=0;
   function update(dt) {
     const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;
+    rts.update(rtsState,dt,units,WORLD);
+    for(const spec of rts.drainSpawns(rtsState)){const p=core.findSpawn(units,spec.team==="player"?rtsState.bases.player.x+65:rtsState.bases.enemy.x-65,spec.team==="player"?450:450,catalog.compose(spec.body,spec.head).radius,WORLD);if(p){const unit=createUnit(spec.team,p.x,p.y,catalog.compose(spec.body,spec.head));units.push(unit);}}
+    enemyThink+=dt;if(enemyThink>5){enemyThink=0;if(rts.queueCreature(rtsState,"enemy","wolf","wolf")&&rtsState.queues.enemy.length===1){}if(rtsState.buildings.filter(b=>b.team==="enemy"&&b.type==="turret").length<2)rts.build(rtsState,"enemy","turret",rtsState.bases.enemy.x-150,450+(rtsState.buildings.length%2?115:-115));}
+    if(rtsState.result&&!paused){paused=true;ui.pause.textContent="Resume";ui.status.textContent=rtsState.result==="victory"?"Victory — enemy base destroyed":"Defeat — your base was destroyed";}
     for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);
     for(const u of units)if(u.moveOrder)u.animPhase=(u.animPhase||0)+dt*10;
     panelRefresh+=dt;if(panelRefresh>=0.1){panelRefresh=0;updatePanel();}
@@ -85,9 +90,12 @@
   }
   function draw() {
     ctx.clearRect(0,0,W,H);
-    const unitById=new Map(units.map(unit=>[unit.id,unit]));
+    unitById=new Map(units.map(unit=>[unit.id,unit]));
     worldView.begin(ctx,W,H);
     worldView.drawTerrain(ctx);
+    for(const node of rtsState.nodes){ctx.save();ctx.fillStyle=node.type==="timber"?"#8a633d":"#83939d";ctx.strokeStyle="#d5c9a6";ctx.lineWidth=2;ctx.beginPath();ctx.arc(node.x,node.y,15,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle="#f0e7d0";ctx.font="11px sans-serif";ctx.textAlign="center";ctx.fillText(node.type==="timber"?"WOOD":"ORE",node.x,node.y-21);ctx.restore();}
+    for(const team of ["player","enemy"]){const b=rtsState.bases[team];ctx.save();ctx.fillStyle=team==="player"?"#236b91":"#963f3a";ctx.strokeStyle="#d8e1e5";ctx.lineWidth=3;ctx.fillRect(b.x-28,b.y-28,56,56);ctx.strokeRect(b.x-28,b.y-28,56,56);ctx.fillStyle="#111";ctx.fillRect(b.x-34,b.y-40,68,6);ctx.fillStyle="#6de0a1";ctx.fillRect(b.x-34,b.y-40,68*b.hp/b.maxHp,6);ctx.restore();}
+    for(const b of rtsState.buildings){ctx.save();ctx.fillStyle=b.team==="player"?"#4c9cbd":"#b65d52";ctx.strokeStyle="#e2e7e9";ctx.lineWidth=2;if(b.type==="turret"){ctx.fillRect(b.x-14,b.y-14,28,28);ctx.beginPath();ctx.arc(b.x,b.y, b.range,0,Math.PI*2);ctx.strokeStyle="rgba(255,255,255,.12)";ctx.stroke();}else ctx.fillRect(b.x-24,b.y-20,48,40);ctx.strokeRect(b.x-(b.type==="turret"?14:24),b.y-(b.type==="turret"?14:20),b.type==="turret"?28:48,b.type==="turret"?28:40);ctx.restore();}
     for(const o of core.DEFAULT_OBSTACLES){ctx.save();ctx.fillStyle="#18251f";ctx.strokeStyle="#78836a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(o.x,o.y,o.radius,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle="rgba(190,196,157,.16)";ctx.beginPath();ctx.arc(o.x-o.radius*.25,o.y-o.radius*.25,o.radius*.38,0,Math.PI*2);ctx.fill();ctx.restore();}
     for (const u of units) {
       drawCreature(u);
@@ -111,7 +119,8 @@
     ui.health.textContent=selected.length>1?selected.length+" creatures ready for group commands":u?Math.ceil(u.hp)+" / "+u.maxHp+" HP · Speed "+u.speed+" · Attack "+u.attack+" · Defence "+u.defense:"Select a player creature";
     ui.healthFill.style.width=u?`${Math.max(0,u.hp/u.maxHp)*100}%`:"0%";
     const playerCount=units.reduce((n,x)=>n+(x.team==="player"),0),enemyCount=units.length-playerCount;
-    ui.status.textContent="Player: "+playerCount+" · Opponent: "+enemyCount+" · "+(enemyCount?"Enemy AI active":"Victory — all opponents defeated");
+    ui.status.textContent="Player: "+playerCount+" · Opponent: "+enemyCount+" · "+(rtsState.result||"Enemy strategy active");
+    if(ui.economy){const p=rtsState.resources.player;ui.economy.textContent="Wood "+Math.floor(p.timber)+" · Ore "+Math.floor(p.ore)+" | Bases "+Math.ceil(rtsState.bases.player.hp)+"/"+rtsState.bases.player.maxHp+" : "+Math.ceil(rtsState.bases.enemy.hp)+"/"+rtsState.bases.enemy.maxHp+" | Queue "+rtsState.queues.player.length; }
     if(ui.preview){const c=catalog.compose(ui.body.value,ui.head.value);ui.preview.textContent=c.name+" · "+c.maxHp+" HP · "+c.speed+" speed · "+c.attack+" attack · "+c.defense+" defence";}
   }
   function point(event){return worldView.screenToWorld(event,canvas,W,H);}
@@ -195,6 +204,11 @@
   ui.resetView.addEventListener("click",()=>{worldView.resetCamera(W,H);draw();});
   ui.pause.addEventListener("click",()=>{paused=!paused;ui.pause.textContent=paused?"Resume":"Pause";ui.status.textContent=paused?"Simulation paused":"Simulation running";});
   ui.body.addEventListener("change",updatePanel); ui.head.addEventListener("change",updatePanel);
+  ui.gather?.addEventListener("click",()=>{const group=selectedUnits();if(!group.length)return;const node=[...rtsState.nodes].filter(n=>n.amount>0).sort((a,b)=>Math.hypot(group[0].x-a.x,group[0].y-a.y)-Math.hypot(group[0].x-b.x,group[0].y-b.y))[0];if(node)for(const u of group)rts.assignGatherer(rtsState,"player",[u],node.id);ui.status.textContent=node?"Gathering "+node.type:"No resources remain";});
+  ui.turret?.addEventListener("click",()=>{const b=rts.build(rtsState,"player","turret",rtsState.bases.player.x+125, rtsState.bases.player.y+((rtsState.buildings.length%2)?95:-95));ui.status.textContent=b?"Defensive turret constructed":"Turret unavailable: check resources, range and spacing";updatePanel();draw();});
+  ui.barracks?.addEventListener("click",()=>{const b=rts.build(rtsState,"player","barracks",rtsState.bases.player.x+125,rtsState.bases.player.y+((rtsState.buildings.length%2)?-110:110));ui.status.textContent=b?"Barracks constructed":"Barracks unavailable: check resources, range and spacing";updatePanel();draw();});
+  ui.train?.addEventListener("click",()=>{const ok=rts.queueCreature(rtsState,"player",ui.body.value,ui.head.value);ui.status.textContent=ok?"Creature added to production queue":"Queue full or insufficient resources";updatePanel();});
+  ui.difficulty?.addEventListener("change",()=>{rtsState=rts.createState(ui.difficulty.value);ui.status.textContent="New match started: "+ui.difficulty.value+" difficulty";});
   ui.spawn.addEventListener("click",()=>{
     const blueprint=catalog.compose(ui.body.value,ui.head.value);
     const position=core.findSpawn(units,Math.random()*WORLD.width,Math.random()*WORLD.height,blueprint.radius,WORLD);
