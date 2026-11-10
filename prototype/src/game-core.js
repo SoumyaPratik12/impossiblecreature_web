@@ -14,7 +14,7 @@
     const scale=team==="player"?1:0.85, r=blueprint.radius;
     return {id,team,x:clamp(x,r,world.width-r),y:clamp(y,r,world.height-r),radius:r,
       hp:blueprint.maxHp*scale,maxHp:blueprint.maxHp*scale,speed:blueprint.speed*scale,
-      attack:blueprint.attack*scale,defense:blueprint.defense,targetX:x,targetY:y,
+      attack:blueprint.attack*scale,defense:blueprint.defense,domain:blueprint.domain||"land",locomotion:blueprint.locomotion||"land",targetX:x,targetY:y,
       moveOrder:false,attackCooldown:0,body:blueprint.body,head:blueprint.head,path:[],pathIndex:0,
       progressX:x,progressY:y,stuckTime:0,recoveryCount:0,recoverySide:0};
   }
