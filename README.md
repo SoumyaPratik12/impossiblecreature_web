@@ -87,3 +87,12 @@ The 200-unit test is a deterministic simulation regression fixture, not a hardwa
 The prototype now includes a resource economy with finite timber and ore deposits, worker assignment, timed creature production queues, base structures (barracks and defensive turrets), base health and victory/defeat detection. Easy, Normal and Hard profiles adjust opponent starting economy, resource collection rate and turret damage. The opponent also periodically queues creatures and attempts to construct defensive turrets.
 
 This is a first playable RTS systems layer, not yet a complete campaign-grade AI. Strategic expansion, scouting, tech trees, repair, persistent resource state in save files, and full enemy worker assignment remain follow-up work. The current RTS state is runtime-only and is not yet serialized by the existing save/load feature.
+
+ 
+## Workforce and specialised creature production
+
+Each faction now has a visible headquarters and three human worker units. The player can assign workers to finite timber and ore deposits; workers travel to a deposit, collect a load, and return it to the headquarters or a storage building. Storage has a capacity limit. Worker roles are represented in the state model, while the current assignment control dispatches the workforce as a group.
+
+Creature production is gated by a matching specialised laboratory: land, water or air. The Creature Builder selects body, head and production domain; the selected domain changes the resulting creature's health, speed, attack and radius profile. Both teams use the same laboratory and queue rules. The opponent has a basic scripted land-production strategy.
+
+Current limitations: all domains still use the prototype's shared ground navigation and combat simulation; true swimming, flight, naval/air combat, advanced genetic components, worker construction animations, and persistent RTS save/load are not implemented yet.
