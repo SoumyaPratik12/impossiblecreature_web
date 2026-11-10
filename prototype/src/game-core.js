@@ -227,7 +227,7 @@
           y:clamp(enemy.y+Math.sin(angle)*approachRadius,u.radius,world.height-u.radius)};
         if(distance(u,enemy)<=u.radius+enemy.radius+8){
           if(u.attackCooldown<=0){enemy.hp=Math.max(0,enemy.hp-Math.max(1,u.attack-enemy.defense));u.attackCooldown=0.8;}
-          u.moveOrder=true;u.targetX=approach.x;u.targetY=approach.y;u.path=[];u.pathIndex=0;
+          u.path=[];u.pathIndex=0;
           continue;
         }
         u.moveOrder=true;
@@ -235,7 +235,7 @@
         u.attackRepathTimer=Math.max(0,(u.attackRepathTimer||0)-dt);
         if(!u.path.length||targetMoved||u.attackRepathTimer<=0){
           const route=findPath(u,approach,world,obstacles,40,u.radius);
-          if(route.length){u.path=route;u.pathIndex=0;u.targetX=approach.x;u.targetY=approach.y;}
+          if(route.length){u.path=route;u.pathIndex=0;}
           u.attackTargetX=approach.x;u.attackTargetY=approach.y;u.attackRepathTimer=0.55;
         }
         while(u.pathIndex<u.path.length&&distance(u,u.path[u.pathIndex])<=Math.max(6,u.speed*dt))u.pathIndex++;
@@ -280,7 +280,7 @@
       }
       const beforeMove={x:u.x,y:u.y};
       u.x=px;u.y=py;
-      if(u.moveOrder){
+      if(u.moveOrder&&!u.attackTargetId){
         const moved=distance(beforeMove,u);
         const previousDistance=distance(beforeMove,{x:u.targetX,y:u.targetY});
         const currentDistance=distance(u,{x:u.targetX,y:u.targetY});
@@ -292,7 +292,7 @@
           u.stuckTime=0;u.progressX=u.x;u.progressY=u.y;
         }
       }
-      if(u.moveOrder&&distance(u,{x:u.targetX,y:u.targetY})<=Math.max(4,u.speed*dt)){u.x=u.targetX;u.y=u.targetY;u.moveOrder=false;u.path=[];u.pathIndex=0;u.stuckTime=0;}
+      if(u.moveOrder&&!u.attackTargetId&&distance(u,{x:u.targetX,y:u.targetY})<=Math.max(4,u.speed*dt)){u.x=u.targetX;u.y=u.targetY;u.moveOrder=false;u.path=[];u.pathIndex=0;u.stuckTime=0;}
     }
     // Resolve unit-to-unit crowding in bounded deterministic passes. Each pass also
     // checks terrain so separation cannot push a creature into a rock or outside the map.
