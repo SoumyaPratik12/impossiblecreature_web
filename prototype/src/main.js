@@ -32,7 +32,7 @@
     status: el("game-status"), name: el("unit-name"), health: el("unit-health"),
     healthFill: el("health-fill"), body: el("body-select"), head: el("head-select"),
     preview: el("creature-preview"), zoomIn: el("zoom-in"), zoomOut: el("zoom-out"),
-    resetView: el("reset-view"), formation: el("formation-select"), gather:el("gather-button"), turret:el("turret-button"), barracks:el("barracks-button"), train:el("train-button"), difficulty:el("difficulty-select"), economy:el("economy-status"), domain:el("domain-select"), workers:el("workers-button"), landLab:el("land-lab-button"), waterLab:el("water-lab-button"), airLab:el("air-lab-button"), storage:el("storage-button")
+    resetView: el("reset-view"), formation: el("formation-select"), gather:el("gather-button"), turret:el("turret-button"), barracks:el("barracks-button"), train:el("train-button"), difficulty:el("difficulty-select"), economy:el("economy-status"), domain:el("domain-select"), landLab:el("land-lab-button"), waterLab:el("water-lab-button"), airLab:el("air-lab-button"), storage:el("storage-button")
   };
   const STORAGE_KEY = "creature-command-prototype-v3";
   let units = [], selectedIds = new Set(), paused = false, nextId = 1, rtsState=rts.createState("normal"), unitById=new Map(), enemyThink=0;
