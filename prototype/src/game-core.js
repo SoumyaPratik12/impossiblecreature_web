@@ -96,7 +96,7 @@
     return offsets;
   }
   function issueAttackTarget(units,targetId,world,obstacles=DEFAULT_OBSTACLES) {
-    const target=units.find(u=>u.id===targetId&&u.hp>0);
+    const target=targetId&&typeof targetId==="object"&&targetId.hp>0?targetId:null;
     if(!target)return false;
     for(const unit of units){
       if(unit===target||unit.hp<=0||unit.team===target.team)continue;
