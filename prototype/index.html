@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#101820">
   <meta name="description" content="An original browser-based RTS sandbox prototype.">
   <title>Impossible Creatures — Browser Prototype</title>
-  <link rel="stylesheet" href="./style.css?v=20261110-9">
-  <script src="./src/world-view.js?v=20261110-9" defer></script>
-  <script src="./src/game-core.js?v=20261110-9" defer></script>
-  <script src="./src/rts-systems.js?v=20261110-9" defer></script>
-  <script src="./src/creature-catalog.js?v=20261110-9" defer></script>
-  <script src="./src/webgpu-renderer.js?v=20261110-9" defer></script>
-  <script src="./src/main.js?v=20261110-9" defer></script>
+  <link rel="stylesheet" href="./style.css?v=20261110-10">
+  <script src="./src/world-view.js?v=20261110-10" defer></script>
+  <script src="./src/game-core.js?v=20261110-10" defer></script>
+  <script src="./src/rts-systems.js?v=20261110-10" defer></script>
+  <script src="./src/creature-catalog.js?v=20261110-10" defer></script>
+  <script src="./src/webgpu-renderer.js?v=20261110-10" defer></script>
+  <script src="./src/main.js?v=20261110-10" defer></script>
 
 </head>
 <body>
@@ -63,14 +63,14 @@
           <select id="body-select"><option value="wolf">Wolf · balanced</option><option value="bear">Bear · tank</option><option value="eagle">Eagle · fast</option></select>
           <label for="head-select">Head</label>
           <select id="head-select"><option value="wolf">Wolf · attack</option><option value="bear">Bear · armour</option><option value="eagle">Eagle · speed</option></select>
-          <p id="creature-preview" class="muted">Wolf body / Wolf head</p>
+          <label for="domain-select">Production domain</label><select id="domain-select"><option value="land">Land creature</option><option value="water">Water creature</option><option value="air">Air creature</option></select>\n          <p id="creature-preview" class="muted">Land · Wolf body / Wolf head</p>
         </div>
         <div class="control-group">
           <label for="difficulty-select">Difficulty</label><select id="difficulty-select"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select>
-          <button id="gather-button" class="button button-secondary" type="button">Gather nearest resource</button>
+          <button id="gather-button" class="button button-secondary" type="button">Assign human workers to gather</button>\n          <button id="land-lab-button" class="button button-secondary" type="button">Build land laboratory (190 wood / 150 ore)</button>\n          <button id="water-lab-button" class="button button-secondary" type="button">Build water laboratory (210 wood / 170 ore)</button>\n          <button id="air-lab-button" class="button button-secondary" type="button">Build air laboratory (230 wood / 190 ore)</button>\n          <button id="storage-button" class="button button-secondary" type="button">Build extra storage</button>
           <button id="turret-button" class="button button-secondary" type="button">Build defensive turret (100 wood / 80 ore)</button>
           <button id="barracks-button" class="button button-secondary" type="button">Build barracks (150 wood / 110 ore)</button>
-          <button id="train-button" class="button button-primary" type="button">Queue creature (55 wood / 35 ore)</button>
+          <button id="train-button" class="button button-primary" type="button">Build selected creature (55 wood / 35 ore)</button>
           <button id="spawn-button" class="button button-quiet" type="button">Debug spawn creature</button>
           <button id="save-button" class="button button-secondary" type="button">Save state</button>
           <button id="load-button" class="button button-secondary" type="button">Load state</button>
@@ -90,9 +90,9 @@
             <li>Units automatically engage nearby opponents, including while moving (attack-move).</li>
             <li>Space + drag or middle-mouse drag to pan the camera.</li>
             <li>Scroll to zoom around your pointer, or use the zoom controls.</li>
-            <li>Select units and use Gather nearest resource to collect wood or ore. Build turrets and barracks near your base, then queue creatures.</li>
+            <li>Human workers are shown as small figures. Assign them to collect timber and ore and deliver loads to your headquarters or storage.</li>\n            <li>Build a land, water or air laboratory. Choose a production domain in Creature Builder before queueing a matching creature.</li>\n            <li>Both teams have workers and can build domain-specific creature facilities. The enemy uses a basic scripted production strategy.</li>
             <li>Destroy the enemy base to win; protect your own base. Difficulty changes enemy economy and defensive fire.</li>
-            <li>Use Save state to store a local prototype snapshot. RTS economy and buildings are not yet included in save files.</li>
+            <li>Use Save state to store a local prototype snapshot. RTS workers, resources, buildings and production queues are not yet included in save files.</li>
           </ul>
         </div>
         <p class="disclaimer">Original prototype only. Not an executable port of the commercial game.</p>
