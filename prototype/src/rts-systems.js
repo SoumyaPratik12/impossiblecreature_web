@@ -38,7 +38,7 @@ function build(state,team,type,x,y){
 }
 function queueCreature(state,team,body="wolf",head="wolf"){
  const cost={timber:55,ore:35},queue=state.queues[team];
- if(state.result||queue.length>=5||!spend(state.resources[team],cost))return false;
+ if(state.result||queue.length>=5||!state.buildings.some(b=>b.team===team&&b.type==="barracks")||!spend(state.resources[team],cost))return false;
  queue.push({body,head,remaining:8,cost});return true;
 }
 function update(state,dt,units,world){
