@@ -25,7 +25,7 @@ function createState(difficulty="normal"){
  const d=DIFFICULTIES[difficulty]||DIFFICULTIES.normal;
  const bases={player:{x:190,y:450,hp:900,maxHp:900},enemy:{x:1410,y:450,hp:900,maxHp:900}};
  return {difficulty,resources:{player:{timber:260,ore:220},enemy:{...d.enemyStartingResources}},
-  storage:{player:{capacity:500},enemy:{capacity:500}},workers:[...createWorkers("player",bases.player),...createWorkers("enemy",bases.enemy)],
+  storage:{player:{capacity:1000},enemy:{capacity:500}},workers:[...createWorkers("player",bases.player),...createWorkers("enemy",bases.enemy)],
   nodes:RESOURCE_NODES.map(n=>({...n})),bases,buildings:[],queues:{player:[],enemy:[]},
   elapsed:0,spawned:[],result:null,nextBuildingId:1,nextQueueId:1};
 }
