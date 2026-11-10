@@ -45,6 +45,12 @@ function update(state,dt,units,world){
  if(!Number.isFinite(dt)||dt<0||dt>1)throw new Error("Invalid RTS delta");
  if(state.result)return state;
  state.elapsed+=dt;const d=DIFFICULTIES[state.difficulty]||DIFFICULTIES.normal;
+ state.resources.enemy.timber+=dt*1.8*d.enemyGatherRate;state.resources.enemy.ore+=dt*1.25*d.enemyGatherRate;
+ for(const u of units){if(u.hp<=0)continue;const enemyBase=state.bases[u.team==="player"?"enemy":"player"];
+  if(u.team==="enemy"&&!u.attackTargetId&&!u.moveOrder){u.targetX=enemyBase.x;u.targetY=enemyBase.y;u.moveOrder=true;u.path=[];u.pathIndex=0;}
+  const targetBase=state.bases[u.team==="player"?"enemy":"player"];
+  if(Math.hypot(u.x-targetBase.x,u.y-targetBase.y)<u.radius+42){u.baseAttackCooldown=Math.max(0,(u.baseAttackCooldown||0)-dt);if(u.baseAttackCooldown<=0){targetBase.hp=Math.max(0,targetBase.hp-Math.max(2,u.attack));u.baseAttackCooldown=1;}}
+ }
  for(const u of units){
   if(u.hp<=0||!u.gatherNodeId)continue;
   const node=state.nodes.find(n=>n.id===u.gatherNodeId);
