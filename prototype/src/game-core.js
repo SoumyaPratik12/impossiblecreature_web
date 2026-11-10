@@ -208,6 +208,16 @@
         waypoint=u.path[u.pathIndex]||{x:u.targetX,y:u.targetY};
       }
       if(!waypoint)continue;
+      // Detect approaching head-on traffic before physical contact. Stable unit-ID
+      // priority prevents both creatures from choosing to yield at the same time.
+      if(u.moveOrder){
+        const ux=u.targetX-u.x,uy=u.targetY-u.y,ul=Math.hypot(ux,uy)||1;
+        const opposing=units.find(other=>other!==u&&other.hp>0&&other.moveOrder&&other.id<u.id&&
+          distance(u,other)<u.radius+other.radius+Math.max(u.speed,other.speed)*0.9&&
+          ((ux/ul)*((other.targetX-other.x)/(Math.hypot(other.targetX-other.x,other.targetY-other.y)||1)+
+            (uy/ul)*((other.targetY-other.y)/(Math.hypot(other.targetX-other.x,other.targetY-other.y)||1)))<-0.55));
+        if(opposing&&tryYieldForTraffic(u,units,world,obstacles))continue;
+      }
       const dx=waypoint.x-u.x,dy=waypoint.y-u.y,len=Math.hypot(dx,dy);
       if(len<=0.001)continue;
       const step=Math.min(len,u.speed*dt),nx=dx/len,ny=dy/len;
