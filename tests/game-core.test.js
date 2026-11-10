@@ -223,7 +223,7 @@ test("group attack orders distribute creatures across multiple enemies",()=>{
  const enemies=[1,2,3].map((id,i)=>({...core.createUnit("enemy",850+i*80,410,catalog.compose("wolf","wolf"),20+id,world)}));
  const attackers=Array.from({length:9},(_,i)=>({...core.createUnit("player",300+i*24,360+(i%3)*35,catalog.compose("bear","bear"),i+1,world)}));
  const state={units:[...attackers,...enemies],nextId:40};
- assert.equal(core.issueAttackTarget(attackers,enemies[0],world),true);
+ assert.equal(core.issueAttackTarget(attackers,enemies[0],world,[],state.units),true);
  const assignments=attackers.map(unit=>unit.attackTargetId);
  assert.ok(new Set(assignments).size>=2,"attackers should be distributed across multiple enemy units");
  for(const enemy of enemies)assert.ok(assignments.includes(enemy.id),"each enemy should receive at least one attacker");
