@@ -106,11 +106,11 @@
     const hash=(unit.id*1103515245+Math.floor((unit.id+enemyTeam.length)*12345))>>>0;
     return choices[hash%choices.length];
   }
-  function issueAttackTarget(units,target,world,obstacles=DEFAULT_OBSTACLES) {
+  function issueAttackTarget(units,target,world,obstacles=DEFAULT_OBSTACLES,allUnits=units) {
     if(!target||target.hp<=0)return false;
     const enemyTeam=target.team;
     const attackers=units.filter(unit=>unit!==target&&unit.hp>0&&unit.team!==enemyTeam);
-    const enemies=units.filter(candidate=>candidate.team===enemyTeam&&candidate.hp>0);
+    const enemies=allUnits.filter(candidate=>candidate.team===enemyTeam&&candidate.hp>0);
     if(!attackers.length||!enemies.length)return false;
     for(const unit of attackers){unit.attackTargetId=null;unit.attackRepathTimer=0;unit.attackTargetX=NaN;unit.attackTargetY=NaN;}
     const stableOrder=(a,b)=>(((a.id*2654435761)>>>0)-((b.id*2654435761)>>>0));
