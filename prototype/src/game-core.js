@@ -95,16 +95,32 @@
     else {const cols=Math.ceil(Math.sqrt(count)),rows=Math.ceil(count/cols);for(let i=0;i<count;i++)offsets.push({x:(i%cols-(Math.min(cols,count)-1)/2)*spacing,y:(Math.floor(i/cols)-(rows-1)/2)*spacing});}
     return offsets;
   }
-  function issueAttackTarget(units,targetId,world,obstacles=DEFAULT_OBSTACLES) {
-    const target=targetId&&typeof targetId==="object"&&targetId.hp>0?targetId:null;
-    if(!target)return false;
-    for(const unit of units){
-      if(unit===target||unit.hp<=0||unit.team===target.team)continue;
-      unit.attackTargetId=target.id;
-      unit.moveOrder=true;
-      unit.attackRepathTimer=0;
-      unit.attackTargetX=NaN;unit.attackTargetY=NaN;
-      unit.path=[];unit.pathIndex=0;unit.stuckTime=0;
+  function attackTargetFor(unit,units,enemyTeam) {
+    const enemies=units.filter(candidate=>candidate.team===enemyTeam&&candidate.hp>0);
+    if(!enemies.length)return null;
+    const counts=new Map(enemies.map(enemy=>[enemy.id,units.filter(other=>other.hp>0&&other.team===unit.team&&other.attackTargetId===enemy.id).length]));
+    const least=Math.min(...counts.values());
+    const choices=enemies.filter(enemy=>counts.get(enemy.id)===least);
+    // Stable pseudo-random tie-breaking: varied target distribution without
+    // frame-to-frame target churn or a dependency on nondeterministic RNG.
+    const hash=(unit.id*1103515245+Math.floor((unit.id+enemyTeam.length)*12345))>>>0;
+    return choices[hash%choices.length];
+  }
+  function issueAttackTarget(units,target,world,obstacles=DEFAULT_OBSTACLES) {
+    if(!target||target.hp<=0)return false;
+    const enemyTeam=target.team;
+    const attackers=units.filter(unit=>unit!==target&&unit.hp>0&&unit.team!==enemyTeam);
+    if(!attackers.length)return false;
+    // Reset the group first, then distribute in a deterministic shuffled order.
+    for(const unit of attackers){unit.attackTargetId=null;unit.attackRepathTimer=0;unit.attackTargetX=NaN;unit.attackTargetY=NaN;}
+    const ordered=attackers.slice().sort((a,b)=>{
+      const ha=(a.id*2654435761)>>>0,hb=(b.id*2654435761)>>>0;
+      return ha-hb;
+    });
+    for(const unit of ordered){
+      const chosen=attackTargetFor(unit,units,enemyTeam);
+      if(!chosen)continue;
+      unit.attackTargetId=chosen.id;unit.moveOrder=true;unit.path=[];unit.pathIndex=0;unit.stuckTime=0;
     }
     return true;
   }
@@ -209,13 +225,10 @@
       u.attackCooldown=Math.max(0,u.attackCooldown-dt);
       u.yieldCooldown=Math.max(0,(u.yieldCooldown||0)-dt);
       let enemy=units.find(e=>e.id===u.attackTargetId&&e.team!==u.team&&e.hp>0)||null;
-      if(u.attackTargetId&&!enemy){u.attackTargetId=null;u.moveOrder=false;u.path=[];u.pathIndex=0;u.attackRepathTimer=0;}
+      if(u.attackTargetId&&!enemy){u.attackTargetId=null;u.path=[];u.pathIndex=0;u.attackRepathTimer=0;}
       if(!enemy){
-        for(const candidate of units){
-          if(candidate.team===u.team||candidate.hp<=0)continue;
-          if(distance(u,candidate)<125&&(!enemy||distance(u,candidate)<distance(u,enemy)))enemy=candidate;
-        }
-        if(enemy)u.attackTargetId=enemy.id;
+        enemy=attackTargetFor(u,units,units.find(candidate=>candidate.team!==u.team&&candidate.hp>0)?.team);
+        if(enemy){u.attackTargetId=enemy.id;u.attackRepathTimer=0;u.path=[];u.pathIndex=0;}
       }
       let waypoint=null;
       if(enemy){
