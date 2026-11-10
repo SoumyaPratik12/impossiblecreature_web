@@ -52,7 +52,7 @@
     const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;
     rts.update(rtsState,dt,units,WORLD);
     for(const spec of rts.drainSpawns(rtsState)){const p=core.findSpawn(units,spec.team==="player"?rtsState.bases.player.x+65:rtsState.bases.enemy.x-65,spec.team==="player"?450:450,catalog.compose(spec.body,spec.head,spec.domain).radius,WORLD);if(p){const unit=createUnit(spec.team,p.x,p.y,catalog.compose(spec.body,spec.head,spec.domain));units.push(unit);}}
-    enemyThink+=dt;if(enemyThink>5){enemyThink=0;if(!rtsState.buildings.some(b=>b.team==="enemy"&&b.type==="barracks"))rts.build(rtsState,"enemy","barracks",rtsState.bases.enemy.x-125,450);else{if(!rtsState.buildings.some(b=>b.team==="enemy"&&b.type==="land_lab"))rts.build(rtsState,"enemy","land_lab",rtsState.bases.enemy.x-125,330);rts.queueCreature(rtsState,"enemy","wolf","wolf","land");if(rtsState.buildings.filter(b=>b.team==="enemy"&&b.type==="turret").length<2)rts.build(rtsState,"enemy","turret",rtsState.bases.enemy.x-150,450+(rtsState.buildings.length%2?115:-115));}}
+    enemyThink+=dt;const enemyPace=rts.DIFFICULTIES[rtsState.difficulty].enemyThinkRate;if(enemyThink>5*enemyPace){enemyThink=0;const eb=rtsState.bases.enemy;const has=(type)=>rtsState.buildings.some(b=>b.team==="enemy"&&b.type===type);if(!has("barracks"))rts.build(rtsState,"enemy","barracks",eb.x-125,450);else{if(!has("land_lab"))rts.build(rtsState,"enemy","land_lab",eb.x-125,330);else if(!has("water_lab")&&rtsState.elapsed>55)rts.build(rtsState,"enemy","water_lab",eb.x-190,450);else if(!has("air_lab")&&rtsState.elapsed>100)rts.build(rtsState,"enemy","air_lab",eb.x-125,570);const domains=["land","water","air"].filter(domain=>has(domain+"_lab"));const domain=domains[Math.floor(rtsState.elapsed/25)%domains.length]||"land";const combos=[["wolf","wolf"],["bear","eagle"],["eagle","wolf"]];const combo=combos[Math.floor(rtsState.elapsed/20)%combos.length];rts.queueCreature(rtsState,"enemy",combo[0],combo[1],domain);if(rtsState.buildings.filter(b=>b.team==="enemy"&&b.type==="turret").length<2)rts.build(rtsState,"enemy","turret",eb.x-150,450+(rtsState.buildings.length%2?115:-115));}}
     if(rtsState.result&&!paused){paused=true;ui.pause.textContent="Resume";ui.status.textContent=rtsState.result==="victory"?"Victory — enemy base destroyed":"Defeat — your base was destroyed";}
     for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);
     for(const u of units)if(u.moveOrder)u.animPhase=(u.animPhase||0)+dt*10;
@@ -65,7 +65,7 @@
     const target=u.attackTargetId?unitById.get(u.attackTargetId):(u.moveOrder?{x:u.targetX,y:u.targetY}:null);
     const angle=target?Math.atan2(target.y-u.y,target.x-u.x):0;
     ctx.save();ctx.translate(u.x,u.y+bob);ctx.rotate(angle);
-    ctx.fillStyle=base;ctx.strokeStyle=player?"#c8f0ff":"#ffd2c9";ctx.lineWidth=1.6;
+    ctx.fillStyle=u.domain==="water"?"#4e9fb7":u.domain==="air"?"#b7a7df":base;ctx.strokeStyle=player?"#c8f0ff":"#ffd2c9";ctx.lineWidth=1.6;
     ctx.beginPath();
     if(u.body==="bear")ctx.ellipse(0,0,u.radius*1.12,u.radius*.88,0,0,Math.PI*2);
     else if(u.body==="eagle")ctx.ellipse(0,0,u.radius*1.2,u.radius*.56,0,0,Math.PI*2);
