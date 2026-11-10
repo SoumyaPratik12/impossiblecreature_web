@@ -219,20 +219,20 @@ test("narrow corridor traffic uses deterministic yielding and remains collision-
  assert.ok(!a.moveOrder||!b.moveOrder,"at least one unit should complete after yielding");
 });
 
-test("multiple selected creatures independently attack one shared target",()=>{
- const target={...core.createUnit("enemy",570,410,catalog.compose("wolf","wolf"),20,world)};
- const attackers=[
-  {...core.createUnit("player",522,410,catalog.compose("bear","bear"),1,world)},
-  {...core.createUnit("player",618,410,catalog.compose("bear","bear"),2,world)},
-  {...core.createUnit("player",570,362,catalog.compose("bear","bear"),3,world)},
-  {...core.createUnit("player",570,458,catalog.compose("bear","bear"),4,world)}
- ];
- const state={units:[...attackers,target],nextId:21};
- assert.equal(core.issueAttackTarget(attackers,target,world),true);
- assert.ok(attackers.every(u=>u.attackTargetId===target.id));
- const before=target.hp;
- for(let i=0;i<180&&state.units.some(u=>u.id===target.id);i++)core.update(state,1/60,world,[]);
- assert.ok(target.hp<before,"the group should apply damage to the shared target");
- assert.ok(attackers.filter(u=>u.attackCooldown>0).length>=2,
-   "at least two creatures should attack on independent cooldowns");
+test("group attack orders distribute creatures across multiple enemies",()=>{
+ const enemies=[1,2,3].map((id,i)=>({...core.createUnit("enemy",850+i*80,410,catalog.compose("wolf","wolf"),20+id,world)}));
+ const attackers=Array.from({length:9},(_,i)=>({...core.createUnit("player",300+i*24,360+(i%3)*35,catalog.compose("bear","bear"),i+1,world)}));
+ const state={units:[...attackers,...enemies],nextId:40};
+ assert.equal(core.issueAttackTarget(attackers,enemies[0],world),true);
+ const assignments=attackers.map(unit=>unit.attackTargetId);
+ assert.ok(new Set(assignments).size>=2,"attackers should be distributed across multiple enemy units");
+ for(const enemy of enemies)assert.ok(assignments.includes(enemy.id),"each enemy should receive at least one attacker");
+ for(let tick=0;tick<1200;tick++)core.update(state,1/60,world,[]);
+ assert.ok(enemies.some(enemy=>enemy.hp<enemy.maxHp),"the group should deal damage during the engagement");
+ const deadTargetAttacker=attackers.find(unit=>!state.units.some(enemy=>enemy.id===unit.attackTargetId));
+ if(deadTargetAttacker){
+   core.update(state,1/60,world,[]);
+   assert.ok(state.units.some(enemy=>enemy.id===deadTargetAttacker.attackTargetId&&enemy.team==="enemy"),
+     "attacker should retarget a living enemy after its target is eliminated");
+ }
 });
