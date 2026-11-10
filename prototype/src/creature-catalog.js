@@ -10,10 +10,10 @@
     bear: { label: "Bear", health: 18, speed: -8, attack: 8, defense: 3 },
     eagle: { label: "Eagle", health: -8, speed: 14, attack: 3, defense: 0 }
   };
-  function compose(bodyKey, headKey) {
+  function compose(bodyKey, headKey, domain="land") {
     const body = bodies[bodyKey] || bodies.wolf;
     const head = heads[headKey] || heads.wolf;
-    return { body: bodyKey in bodies ? bodyKey : "wolf", head: headKey in heads ? headKey : "wolf",
+    const movement=domain==="water"?{speed:0.88,health:1.08,attack:1.05,radius:1.08}:domain==="air"?{speed:1.28,health:.82,attack:.92,radius:.88}:{speed:1,health:1,attack:1,radius:1};\n    return { body: bodyKey in bodies ? bodyKey : "wolf", head: headKey in heads ? headKey : "wolf", domain, locomotion:domain,
       name: body.label + " body / " + head.label + " head", maxHp: Math.max(50, body.health + head.health),
       speed: Math.max(35, body.speed + head.speed), attack: Math.max(4, body.attack + head.attack),
       defense: Math.max(0, body.defense + head.defense), radius: body.radius };
