@@ -95,6 +95,19 @@
     else {const cols=Math.ceil(Math.sqrt(count)),rows=Math.ceil(count/cols);for(let i=0;i<count;i++)offsets.push({x:(i%cols-(Math.min(cols,count)-1)/2)*spacing,y:(Math.floor(i/cols)-(rows-1)/2)*spacing});}
     return offsets;
   }
+  function issueAttackTarget(units,targetId,world,obstacles=DEFAULT_OBSTACLES) {
+    const target=units.find(u=>u.id===targetId&&u.hp>0);
+    if(!target)return false;
+    for(const unit of units){
+      if(unit===target||unit.hp<=0||unit.team===target.team)continue;
+      unit.attackTargetId=target.id;
+      unit.moveOrder=true;
+      unit.attackRepathTimer=0;
+      unit.attackTargetX=NaN;unit.attackTargetY=NaN;
+      unit.path=[];unit.pathIndex=0;unit.stuckTime=0;
+    }
+    return true;
+  }
   function issueFormationMove(units,x,y,world,formation="compact",obstacles=DEFAULT_OBSTACLES) {
     const offsets=formationOffsets(units.length,formation),assigned=[];
     const center=units.reduce((p,u)=>({x:p.x+u.x/Math.max(1,units.length),y:p.y+u.y/Math.max(1,units.length)}),{x:0,y:0});
@@ -195,15 +208,39 @@
       if(u.hp<=0)continue;
       u.attackCooldown=Math.max(0,u.attackCooldown-dt);
       u.yieldCooldown=Math.max(0,(u.yieldCooldown||0)-dt);
-      let enemy=null;
-      for(const e of units)if(e.team!==u.team&&e.hp>0&&distance(u,e)<(u.moveOrder?90:125)&&(!enemy||distance(u,e)<distance(u,enemy)))enemy=e;
-      if(enemy&&distance(u,enemy)<=u.radius+enemy.radius+8){
-        if(u.attackCooldown<=0){enemy.hp=Math.max(0,enemy.hp-Math.max(1,u.attack-enemy.defense));u.attackCooldown=0.8;}
-        continue;
+      let enemy=units.find(e=>e.id===u.attackTargetId&&e.team!==u.team&&e.hp>0)||null;
+      if(u.attackTargetId&&!enemy){u.attackTargetId=null;u.moveOrder=false;u.path=[];u.pathIndex=0;u.attackRepathTimer=0;}
+      if(!enemy){
+        for(const candidate of units){
+          if(candidate.team===u.team||candidate.hp<=0)continue;
+          if(distance(u,candidate)<125&&(!enemy||distance(u,candidate)<distance(u,enemy)))enemy=candidate;
+        }
+        if(enemy)u.attackTargetId=enemy.id;
       }
       let waypoint=null;
-      if(enemy)waypoint=enemy;
-      else if(u.moveOrder){
+      if(enemy){
+        const attackers=units.filter(other=>other.hp>0&&other.team===u.team&&other.attackTargetId===enemy.id).sort((a,b)=>a.id-b.id);
+        const slot=Math.max(0,attackers.findIndex(other=>other.id===u.id));
+        const angle=(slot/Math.max(1,attackers.length))*Math.PI*2+(u.id%7)*0.13;
+        const approachRadius=u.radius+enemy.radius+9;
+        const approach={x:clamp(enemy.x+Math.cos(angle)*approachRadius,u.radius,world.width-u.radius),
+          y:clamp(enemy.y+Math.sin(angle)*approachRadius,u.radius,world.height-u.radius)};
+        if(distance(u,enemy)<=u.radius+enemy.radius+8){
+          if(u.attackCooldown<=0){enemy.hp=Math.max(0,enemy.hp-Math.max(1,u.attack-enemy.defense));u.attackCooldown=0.8;}
+          u.moveOrder=true;u.targetX=approach.x;u.targetY=approach.y;u.path=[];u.pathIndex=0;
+          continue;
+        }
+        u.moveOrder=true;
+        const targetMoved=!finite(u.attackTargetX)||distance(approach,{x:u.attackTargetX,y:u.attackTargetY})>28;
+        u.attackRepathTimer=Math.max(0,(u.attackRepathTimer||0)-dt);
+        if(!u.path.length||targetMoved||u.attackRepathTimer<=0){
+          const route=findPath(u,approach,world,obstacles,40,u.radius);
+          if(route.length){u.path=route;u.pathIndex=0;u.targetX=approach.x;u.targetY=approach.y;}
+          u.attackTargetX=approach.x;u.attackTargetY=approach.y;u.attackRepathTimer=0.55;
+        }
+        while(u.pathIndex<u.path.length&&distance(u,u.path[u.pathIndex])<=Math.max(6,u.speed*dt))u.pathIndex++;
+        waypoint=u.path[u.pathIndex]||approach;
+      } else if(u.moveOrder){
         if(!Array.isArray(u.path)||!u.path.length){const order=issueMove(u,u.targetX,u.targetY,world,obstacles);if(!order)continue;}
         while(u.pathIndex<u.path.length&&distance(u,u.path[u.pathIndex])<=Math.max(6,u.speed*dt))u.pathIndex++;
         waypoint=u.path[u.pathIndex]||{x:u.targetX,y:u.targetY};
@@ -323,5 +360,5 @@
     if(raw.nextId<=Math.max(0,...ids))throw new Error("Invalid next unit ID");
     return {units,nextId:raw.nextId,camera:{x:raw.camera.x,y:raw.camera.y,zoom:raw.camera.zoom}};
   }
-  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueFormationMove,formationOffsets,findPath,pointBlocked,nearestWalkable,findSpawn,recoverStalledUnit,tryYieldForTraffic,update,snapshot,validateSave};
+  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueAttackTarget,issueFormationMove,formationOffsets,findPath,pointBlocked,nearestWalkable,findSpawn,recoverStalledUnit,tryYieldForTraffic,update,snapshot,validateSave};
 })();
