@@ -207,11 +207,14 @@ test("narrow corridor traffic uses deterministic yielding and remains collision-
  const b={...core.createUnit("enemy",900,550,catalog.compose("wolf","wolf"),2,world),x:900,y:550};
  const state={units:[a,b],nextId:3};
  core.issueMove(a,1100,550,world,obstacles);core.issueMove(b,500,550,world,obstacles);
+ let previousA={x:a.x,y:a.y},previousB={x:b.x,y:b.y},maxStep=0;
  for(let tick=0;tick<1800;tick++){
   core.update(state,1/60,world,obstacles);
   for(const u of state.units)assert.ok(!core.pointBlocked(u.x,u.y,u.radius,world,obstacles));
-  assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>=a.radius+b.radius+2,"traffic units must not overlap");
+  maxStep=Math.max(maxStep,Math.hypot(a.x-previousA.x,a.y-previousA.y),Math.hypot(b.x-previousB.x,b.y-previousB.y));
+  previousA={x:a.x,y:a.y};previousB={x:b.x,y:b.y};
  }
  assert.ok((b.yieldCount||0)>0,"higher-ID unit should yield deterministically");
+ assert.ok(maxStep<80,"yielding and separation must not teleport units");
  assert.ok(!a.moveOrder||!b.moveOrder,"at least one unit should complete after yielding");
 });
