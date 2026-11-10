@@ -210,7 +210,7 @@
   ui.barracks?.addEventListener("click",()=>{const b=rts.build(rtsState,"player","barracks",rtsState.bases.player.x+125,rtsState.bases.player.y+((rtsState.buildings.length%2)?-110:110));ui.status.textContent=b?"Barracks constructed":"Barracks unavailable: check resources, range and spacing";updatePanel();draw();});
   ui.train?.addEventListener("click",()=>{const domain=ui.domain?.value||"land";const ok=rts.queueCreature(rtsState,"player",ui.body.value,ui.head.value,domain);ui.status.textContent=ok?domain.toUpperCase()+" creature added to production queue":"Build the matching laboratory and check queue/resources";updatePanel();});
   for(const [button,type,dx,dy] of [[ui.landLab,"land_lab",125,-110],[ui.waterLab,"water_lab",190,0],[ui.airLab,"air_lab",125,110],[ui.storage,"storage",215,150]])button?.addEventListener("click",()=>{const b=rts.build(rtsState,"player",type,rtsState.bases.player.x+dx,rtsState.bases.player.y+dy);ui.status.textContent=b?type.replace("_"," ")+" constructed":"Cannot construct: insufficient resources or blocked placement";updatePanel();draw();});
-  ui.difficulty?.addEventListener("change",()=>{rtsState=rts.createState(ui.difficulty.value);ui.status.textContent="New match started: "+ui.difficulty.value+" difficulty";});
+  ui.difficulty?.addEventListener("change",()=>{reset();ui.status.textContent="New match started: "+ui.difficulty.value+" difficulty";draw();});
   ui.spawn.addEventListener("click",()=>{
     const blueprint=catalog.compose(ui.body.value,ui.head.value);
     const position=core.findSpawn(units,Math.random()*WORLD.width,Math.random()*WORLD.height,blueprint.radius,WORLD);
