@@ -32,7 +32,9 @@ jobs:
 
       - name: Check JavaScript syntax
         run: |
-          node --check prototype/src/main.js\n          node --check prototype/src/rts-systems.js\n          node --check prototype/src/creature-catalog.js
+          node --check prototype/src/main.js
+          node --check prototype/src/rts-systems.js
+          node --check prototype/src/creature-catalog.js
           node --check prototype/src/game-core.js
           node --check prototype/src/rts-systems.js
           node --check prototype/src/creature-catalog.js
