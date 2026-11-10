@@ -46,7 +46,8 @@
   function selectOnly(u){selectedIds.clear();if(u)selectedIds.add(u.id);}
   function issueMoveSelection(x,y){const group=selectedUnits();if(!group.length)return;const formation=ui.formation?.value||"compact";core.issueFormationMove(group,x,y,WORLD,formation);ui.status.textContent=formation+" formation order issued to "+group.length+" creatures";draw();}
   function issueMove(unit,x,y) { core.issueMove(unit,x,y,WORLD); }
-  function update(dt) { const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);updatePanel(); }
+  let panelRefresh=0;
+  function update(dt) { const s={units,nextId};core.update(s,dt,WORLD,core.DEFAULT_OBSTACLES);units=s.units;for(const id of [...selectedIds])if(!units.some(u=>u.id===id))selectedIds.delete(id);panelRefresh+=dt;if(panelRefresh>=0.1){panelRefresh=0;updatePanel();} }
   function draw() {
     ctx.clearRect(0,0,W,H);
     worldView.begin(ctx,W,H);
@@ -83,6 +84,7 @@
   function clampPoint(x,y,r){return{x:Math.max(r,Math.min(WORLD.width-r,x)),y:Math.max(r,Math.min(WORLD.height-r,y))};}
   function pointInSelection(p,b){return p.x>=Math.min(b.x1,b.x2)&&p.x<=Math.max(b.x1,b.x2)&&p.y>=Math.min(b.y1,b.y2)&&p.y<=Math.max(b.y1,b.y2);}
   function hitPlayer(p){return [...units].reverse().find(u=>u.team==="player"&&Math.hypot(u.x-p.x,u.y-p.y)<=u.radius+9)||null;}
+  function hitEnemy(p){return [...units].reverse().find(u=>u.team==="enemy"&&Math.hypot(u.x-p.x,u.y-p.y)<=u.radius+9)||null;}
 
   canvas.addEventListener("pointerdown",(event)=>{
     if(event.button===1 || (event.button===0&&spaceDown)){
@@ -133,7 +135,18 @@
     else if(!event.shiftKey)selectOnly(null);
     updatePanel();draw();
   });
-  canvas.addEventListener("contextmenu",(event)=>{event.preventDefault();if(!selectedIds.size)return;const p=point(event);issueMoveSelection(p.x,p.y);});
+  canvas.addEventListener("contextmenu",(event)=>{
+    event.preventDefault();if(!selectedIds.size)return;
+    const p=point(event),target=hitEnemy(p);
+    if(target){
+      const attackers=selectedUnits();
+      if(core.issueAttackTarget(attackers,target.id,WORLD,core.DEFAULT_OBSTACLES)){
+        ui.status.textContent="Attack order issued to "+attackers.length+" creatures";draw();
+      }
+      return;
+    }
+    issueMoveSelection(p.x,p.y);
+  });
   canvas.addEventListener("wheel",(event)=>{
     event.preventDefault(); const rect=canvas.getBoundingClientRect();
     worldView.zoomAt((event.clientX-rect.left)*W/rect.width,(event.clientY-rect.top)*H/rect.height,event.deltaY,W,H);
