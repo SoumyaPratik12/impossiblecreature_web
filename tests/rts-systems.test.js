@@ -15,7 +15,7 @@ test("building placement enforces costs, range and spacing",()=>{
  assert.equal(rts.build(s,"player","turret",270,450),null);
 });
 test("production queues cap at five and emit completed units",()=>{
- const s=rts.createState();s.resources.player={timber:500,ore:300};assert.equal(rts.queueCreature(s,"player"),false);assert.ok(rts.build(s,"player","barracks",260,450));for(let i=0;i<5;i++)assert.equal(rts.queueCreature(s,"player"),true);
+ const s=rts.createState();s.resources.player={timber:500,ore:300};assert.equal(rts.queueCreature(s,"player"),false);assert.ok(rts.build(s,"player","land_lab",260,450));for(let i=0;i<5;i++)assert.equal(rts.queueCreature(s,"player"),true);
  assert.equal(rts.queueCreature(s,"player"),false);
  for(let i=0;i<9;i++)rts.update(s,1,[],{width:1600,height:900});
  assert.equal(rts.drainSpawns(s).length,1);assert.equal(s.queues.player.length,4);
