@@ -32,3 +32,24 @@ test("difficulty profiles change enemy economy and turret pressure",()=>{
  assert.ok(rts.DIFFICULTIES.hard.enemyGatherRate>rts.DIFFICULTIES.normal.enemyGatherRate);
  assert.ok(rts.DIFFICULTIES.easy.turretDamage<rts.DIFFICULTIES.hard.turretDamage);
 });
+test("human workers collect finite deposits and deliver resources to base storage",()=>{
+ const s=rts.createState();assert.equal(rts.assignWorkers(s,"player"),3);
+ const before=s.resources.player.timber+s.resources.player.ore;
+ for(let i=0;i<240;i++)rts.update(s,.1,[],{width:1600,height:900});
+ const after=s.resources.player.timber+s.resources.player.ore;
+ assert.ok(after>before);assert.ok(s.workers.some(w=>w.team==="player"));
+});
+test("domain-specific laboratories gate matching creature production",()=>{
+ const s=rts.createState();s.resources.player={timber:900,ore:900};
+ assert.equal(rts.queueCreature(s,"player","bear","eagle","water"),false);
+ assert.ok(rts.build(s,"player","water_lab",260,450));
+ assert.equal(rts.queueCreature(s,"player","bear","eagle","water"),true);
+ assert.equal(s.queues.player[0].domain,"water");
+});
+test("creature production preserves selected movement domain",()=>{
+ const s=rts.createState();s.resources.player={timber:900,ore:900};
+ assert.ok(rts.build(s,"player","air_lab",260,450));
+ assert.equal(rts.queueCreature(s,"player","eagle","wolf","air"),true);
+ for(let i=0;i<9;i++)rts.update(s,1,[],{width:1600,height:900});
+ assert.equal(rts.drainSpawns(s)[0].domain,"air");
+});
