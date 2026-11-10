@@ -67,6 +67,12 @@ const assert = require("node:assert/strict");
     const attackOrders=await page.evaluate(()=>window.CreatureGameDebug.getUnits().filter(u=>u.team==="player"));
     assert.ok(new Set(attackOrders.map(u=>u.attackTargetId)).size>1,
       "right-clicking an enemy should distribute the selected group across multiple enemy targets");
+    const renderedPalette=await canvas.evaluate(el=>{
+      const c=el.getContext("2d"),data=c.getImageData(0,0,el.width,el.height).data,colors=new Set();
+      for(let i=0;i<data.length;i+=4*97)colors.add(data[i]+","+data[i+1]+","+data[i+2]);
+      return colors.size;
+    });
+    assert.ok(renderedPalette>20,"procedural terrain and creature silhouettes should render visible color variation");
     const size = await canvas.evaluate(el => ({ width:el.width, height:el.height }));
     assert.equal(size.width, 1920, "DPR=2 backing width");
     assert.equal(size.height, 1120, "DPR=2 backing height");
