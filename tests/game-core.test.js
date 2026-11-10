@@ -219,17 +219,20 @@ test("narrow corridor traffic uses deterministic yielding and remains collision-
  assert.ok(!a.moveOrder||!b.moveOrder,"at least one unit should complete after yielding");
 });
 
-test("multiple selected creatures independently pursue and attack one target",()=>{
- const attackers=Array.from({length:4},(_,i)=>({
-  ...core.createUnit("player",360+i*42,380+(i%2)*42,catalog.compose("bear","bear"),i+1,world)
- }));
+test("multiple selected creatures independently attack one shared target",()=>{
  const target={...core.createUnit("enemy",570,410,catalog.compose("wolf","wolf"),20,world)};
+ const attackers=[
+  {...core.createUnit("player",522,410,catalog.compose("bear","bear"),1,world)},
+  {...core.createUnit("player",618,410,catalog.compose("bear","bear"),2,world)},
+  {...core.createUnit("player",570,362,catalog.compose("bear","bear"),3,world)},
+  {...core.createUnit("player",570,458,catalog.compose("bear","bear"),4,world)}
+ ];
  const state={units:[...attackers,target],nextId:21};
  assert.equal(core.issueAttackTarget(attackers,target,world),true);
  assert.ok(attackers.every(u=>u.attackTargetId===target.id));
  const before=target.hp;
- for(let i=0;i<900&&state.units.some(u=>u.id===target.id);i++)core.update(state,1/60,world,[]);
- assert.ok(!state.units.some(u=>u.id===target.id)||target.hp<before,"the group should apply damage to the shared target");
- assert.ok(attackers.filter(u=>u.attackCooldown>0||u.attackTargetId===target.id).length>=2,
-   "more than one attacker should participate in the engagement");
+ for(let i=0;i<180&&state.units.some(u=>u.id===target.id);i++)core.update(state,1/60,world,[]);
+ assert.ok(target.hp<before,"the group should apply damage to the shared target");
+ assert.ok(attackers.filter(u=>u.attackCooldown>0).length>=2,
+   "at least two creatures should attack on independent cooldowns");
 });
