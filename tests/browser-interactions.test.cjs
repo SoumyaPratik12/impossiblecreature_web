@@ -65,8 +65,8 @@ const assert = require("node:assert/strict");
       document.querySelector("#battlefield").dispatchEvent(event);
     });
     const attackOrders=await page.evaluate(()=>window.CreatureGameDebug.getUnits().filter(u=>u.team==="player"));
-    assert.ok(attackOrders.every(u=>u.attackTargetId===attackOrders[0].attackTargetId),
-      "right-clicking an enemy should assign a shared attack target to the selected group");
+    assert.ok(new Set(attackOrders.map(u=>u.attackTargetId)).size>1,
+      "right-clicking an enemy should distribute the selected group across multiple enemy targets");
     const size = await canvas.evaluate(el => ({ width:el.width, height:el.height }));
     assert.equal(size.width, 1920, "DPR=2 backing width");
     assert.equal(size.height, 1120, "DPR=2 backing height");
