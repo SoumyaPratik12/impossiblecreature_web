@@ -185,3 +185,36 @@ test("crowded units separate without being pushed into rocks",()=>{
  const state={units:group};core.update(state,1/30,world,obstacles);
  for(const u of group)assert.ok(!core.pointBlocked(u.x,u.y,u.radius,world,obstacles));
 });
+
+test("stalled units recover with safe deterministic detours",()=>{
+ const obstacles=[{x:800,y:430,radius:105},{x:800,y:670,radius:105}];
+ const a={...core.createUnit("player",620,550,catalog.compose("wolf","wolf"),1,world),x:620,y:550};
+ const blocker={...core.createUnit("player",670,550,catalog.compose("wolf","wolf"),2,world),x:670,y:550};
+ a.moveOrder=true;a.targetX=1040;a.targetY=550;a.path=[{x:900,y:550},{x:1040,y:550}];a.pathIndex=0;
+ a.stuckTime=1.2;a.progressX=a.x;a.progressY=a.y;
+ const before={x:a.x,y:a.y};
+ const recovered=core.recoverStalledUnit(a,[a,blocker],world,obstacles);
+ assert.ok(recovered,"unit should find a lateral route around the blocking unit");
+ assert.ok(a.recoveryCount>0);
+ assert.ok(a.path.length>1);
+ assert.ok(!core.pointBlocked(a.path[0].x,a.path[0].y,a.radius,world,obstacles));
+ assert.ok(Math.hypot(a.path[0].x-blocker.x,a.path[0].y-blocker.y)>a.radius+blocker.radius+10);
+ assert.deepEqual({x:a.x,y:a.y},before,"recovery must not teleport the unit");
+});
+test("opposing traffic in a corridor makes progress with yielding recovery",()=>{
+ const obstacles=[{x:800,y:300,radius:125},{x:800,y:800,radius:125}];
+ const a={...core.createUnit("player",570,550,catalog.compose("wolf","wolf"),1,world),x:570,y:550};
+ const b={...core.createUnit("enemy",1030,550,catalog.compose("wolf","wolf"),2,world),x:1030,y:550};
+ const state={units:[a,b],nextId:3};
+ core.issueMove(a,1110,550,world,obstacles);core.issueMove(b,490,550,world,obstacles);
+ let recoveryObserved=false;
+ for(let tick=0;tick<1800;tick++){
+  core.update(state,1/60,world,obstacles);
+  recoveryObserved=recoveryObserved||(a.recoveryCount||0)>0||(b.recoveryCount||0)>0;
+  for(const u of state.units)assert.ok(!core.pointBlocked(u.x,u.y,u.radius,world,obstacles));
+ }
+ assert.ok(recoveryObserved,"at least one unit should invoke stuck recovery");
+ const crossed=a.x>b.x;
+ assert.ok(crossed||Math.hypot(a.x-1110,a.y-550)<24||Math.hypot(b.x-490,b.y-550)<24,
+  "opposing units should pass or one should complete its movement order");
+});
