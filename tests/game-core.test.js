@@ -201,17 +201,17 @@ test("stalled units recover with safe deterministic detours",()=>{
  assert.ok(Math.hypot(a.path[0].x-blocker.x,a.path[0].y-blocker.y)>a.radius+blocker.radius+10);
  assert.deepEqual({x:a.x,y:a.y},before,"recovery must not teleport the unit");
 });
-test("narrow corridor traffic invokes recovery without entering terrain",()=>{
+test("narrow corridor traffic uses deterministic yielding and remains collision-safe",()=>{
  const obstacles=[{x:800,y:300,radius:150},{x:800,y:800,radius:150}];
  const a={...core.createUnit("player",700,550,catalog.compose("wolf","wolf"),1,world),x:700,y:550};
  const b={...core.createUnit("enemy",900,550,catalog.compose("wolf","wolf"),2,world),x:900,y:550};
  const state={units:[a,b],nextId:3};
  core.issueMove(a,1100,550,world,obstacles);core.issueMove(b,500,550,world,obstacles);
- let recoveryObserved=false;
- for(let tick=0;tick<900;tick++){
+ for(let tick=0;tick<1800;tick++){
   core.update(state,1/60,world,obstacles);
-  recoveryObserved=recoveryObserved||(a.recoveryCount||0)>0||(b.recoveryCount||0)>0;
   for(const u of state.units)assert.ok(!core.pointBlocked(u.x,u.y,u.radius,world,obstacles));
+  assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>=a.radius+b.radius+2,"traffic units must not overlap");
  }
- assert.ok(recoveryObserved,"blocked movement should trigger a recovery attempt");
+ assert.ok((b.yieldCount||0)>0,"higher-ID unit should yield deterministically");
+ assert.ok(!a.moveOrder||!b.moveOrder,"at least one unit should complete after yielding");
 });
