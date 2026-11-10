@@ -57,3 +57,4 @@ h3 { margin-bottom: 12px; font-size: .9rem; }
 .formation-control { color:#aab8c3; font-size:.72rem; margin-left:4px; }
 #formation-select { min-height:38px; padding:6px 9px; border:1px solid #3b505e; border-radius:8px; background:#1a2a34; color:#e8eef4; font:inherit; font-size:.78rem; }
 @media (max-width:560px) { .camera-tools span { margin-left:0; width:100%; } }
+\n.worker-controls { display:grid; gap:8px; }\n#domain-select { width:100%; min-height:36px; padding:6px 9px; border:1px solid #3b505e; border-radius:7px; background:#1a2a34; color:#e8eef4; font:inherit; font-size:.8rem; }\n
