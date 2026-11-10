@@ -15,7 +15,8 @@
     return {id,team,x:clamp(x,r,world.width-r),y:clamp(y,r,world.height-r),radius:r,
       hp:blueprint.maxHp*scale,maxHp:blueprint.maxHp*scale,speed:blueprint.speed*scale,
       attack:blueprint.attack*scale,defense:blueprint.defense,targetX:x,targetY:y,
-      moveOrder:false,attackCooldown:0,body:blueprint.body,head:blueprint.head,path:[],pathIndex:0};
+      moveOrder:false,attackCooldown:0,body:blueprint.body,head:blueprint.head,path:[],pathIndex:0,
+      progressX:x,progressY:y,stuckTime:0,recoveryCount:0,recoverySide:0};
   }
   function createInitialState(catalog,world) {
     let id=1;
@@ -129,6 +130,40 @@
     }
     return null;
   }
+  function segmentClear(a,b,radius,world,obstacles) {
+    const length=distance(a,b),samples=Math.max(1,Math.ceil(length/12));
+    for(let i=1;i<=samples;i++){const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+      if(pointBlocked(x,y,radius,world,obstacles))return false;}
+    return true;
+  }
+  function recoverStalledUnit(unit,units,world,obstacles) {
+    const target={x:unit.targetX,y:unit.targetY},dx=target.x-unit.x,dy=target.y-unit.y,len=Math.hypot(dx,dy);
+    if(len<1)return false;
+    const px=-dy/len,py=dx/len,side=unit.recoverySide||((unit.id%2)?1:-1);
+    const offsets=[side,-side,side*2,-side*2];
+    const base=Math.max(42,unit.radius*2+12);
+    for(const multiplier of [1,1.5,2,2.5]){
+      for(const sign of offsets){
+        const candidate={x:unit.x+px*base*multiplier*sign,y:unit.y+py*base*multiplier*sign};
+        if(pointBlocked(candidate.x,candidate.y,unit.radius,world,obstacles))continue;
+        if(units.some(other=>other!==unit&&other.hp>0&&distance(candidate,other)<unit.radius+other.radius+10))continue;
+        const route=findPath(candidate,target,world,obstacles,40,unit.radius);
+        if(!route.length)continue;
+        if(!segmentClear(unit,candidate,unit.radius,world,obstacles))continue;
+        unit.path=[candidate,...route];unit.pathIndex=0;unit.recoverySide=-side;
+        unit.recoveryCount=(unit.recoveryCount||0)+1;unit.stuckTime=0;
+        return true;
+      }
+    }
+    // A blocked side-step can be caused by the unit directly ahead. Re-route from
+    // the current position; deterministic A* tie-breaking gives a stable alternate.
+    const alternate=findPath(unit,target,world,obstacles,40,unit.radius);
+    if(alternate.length>1){
+      unit.path=alternate;unit.pathIndex=0;unit.recoveryCount=(unit.recoveryCount||0)+1;unit.stuckTime=0;
+      return true;
+    }
+    return false;
+  }
   function update(state,dt,world,obstacles=DEFAULT_OBSTACLES) {
     if(!finite(dt)||dt<0||dt>1)throw new Error("Invalid simulation delta");
     const units=state.units;
@@ -163,8 +198,18 @@
         else if(!pointBlocked(yOnly.x,yOnly.y,u.radius,world,obstacles)){px=yOnly.x;py=yOnly.y;}
         else {px=u.x;py=u.y;}
       }
+      const beforeMove={x:u.x,y:u.y};
       u.x=px;u.y=py;
-      if(u.moveOrder&&distance(u,{x:u.targetX,y:u.targetY})<=Math.max(4,u.speed*dt)){u.x=u.targetX;u.y=u.targetY;u.moveOrder=false;u.path=[];u.pathIndex=0;}
+      if(u.moveOrder){
+        const moved=distance(beforeMove,u),progress=distance(u,{x:u.progressX??beforeMove.x,y:u.progressY??beforeMove.y});
+        if(moved>0.15&&progress>=2){u.progressX=u.x;u.progressY=u.y;u.stuckTime=0;}
+        else if(moved<0.15)u.stuckTime=(u.stuckTime||0)+dt;
+        if(u.stuckTime>=1.1){
+          recoverStalledUnit(u,units,world,obstacles);
+          u.stuckTime=0;u.progressX=u.x;u.progressY=u.y;
+        }
+      }
+      if(u.moveOrder&&distance(u,{x:u.targetX,y:u.targetY})<=Math.max(4,u.speed*dt)){u.x=u.targetX;u.y=u.targetY;u.moveOrder=false;u.path=[];u.pathIndex=0;u.stuckTime=0;}
     }
     // Resolve unit-to-unit crowding in bounded deterministic passes. Each pass also
     // checks terrain so separation cannot push a creature into a rock or outside the map.
@@ -212,10 +257,12 @@
         (u.path!==undefined&&(!Array.isArray(u.path)||u.path.length>256||u.path.some(p=>!p||!finite(p.x)||!finite(p.y)||p.x<0||p.x>world.width||p.y<0||p.y>world.height)))||
         (u.pathIndex!==undefined&&(!Number.isInteger(u.pathIndex)||u.pathIndex<0||u.pathIndex>256)))
         throw new Error("Invalid unit in save");
-      ids.add(u.id);return {...u,path:Array.isArray(u.path)?u.path.map(p=>({...p})):[],pathIndex:u.pathIndex||0};
+      ids.add(u.id);return {...u,path:Array.isArray(u.path)?u.path.map(p=>({...p})):[],pathIndex:u.pathIndex||0,
+        progressX:finite(u.progressX)?u.progressX:u.x,progressY:finite(u.progressY)?u.progressY:u.y,
+        stuckTime:0,recoveryCount:Number.isInteger(u.recoveryCount)?u.recoveryCount:0,recoverySide:u.recoverySide===-1?-1:1};
     });
     if(raw.nextId<=Math.max(0,...ids))throw new Error("Invalid next unit ID");
     return {units,nextId:raw.nextId,camera:{x:raw.camera.x,y:raw.camera.y,zoom:raw.camera.zoom}};
   }
-  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueFormationMove,formationOffsets,findPath,pointBlocked,nearestWalkable,findSpawn,update,snapshot,validateSave};
+  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueFormationMove,formationOffsets,findPath,pointBlocked,nearestWalkable,findSpawn,recoverStalledUnit,update,snapshot,validateSave};
 })();
