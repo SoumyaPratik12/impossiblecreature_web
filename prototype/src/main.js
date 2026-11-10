@@ -140,7 +140,7 @@
     const p=point(event),target=hitEnemy(p);
     if(target){
       const attackers=selectedUnits();
-      if(core.issueAttackTarget(attackers,target.id,WORLD,core.DEFAULT_OBSTACLES)){
+      if(core.issueAttackTarget(attackers,target,WORLD,core.DEFAULT_OBSTACLES)){
         ui.status.textContent="Attack order issued to "+attackers.length+" creatures";draw();
       }
       return;
