@@ -256,3 +256,27 @@ test("group attackers retarget living enemies when an assigned target is elimina
  assert.ok(attackers.some(unit=>unit.attackTargetId!==eliminatedId),
    "attackers assigned to the eliminated target should switch to a living enemy");
 });
+
+test("enemy AI detects and pursues a player outside the player auto-engagement radius",()=>{
+ const player={...core.createUnit("player",800,450,catalog.compose("wolf","wolf"),1,world),x:800,y:450};
+ const enemy={...core.createUnit("enemy",500,450,catalog.compose("bear","bear"),2,world),x:500,y:450};
+ const state={units:[player,enemy],nextId:3};
+ core.update(state,1/60,world,[]);
+ assert.equal(enemy.attackTargetId,player.id,"enemy AI should acquire a player within its detection radius");
+ assert.ok(enemy.moveOrder,"enemy AI should pursue its detected target");
+});
+
+test("200-unit simulation stress fixture stays finite and inside the world",()=>{
+ const group=Array.from({length:200},(_,i)=>{
+   const team=i%2?"enemy":"player",x=90+(i%20)*70,y=70+Math.floor(i/20)*75;
+   return {...core.createUnit(team,x,y,catalog.compose(i%3===0?"bear":"wolf",i%3===1?"eagle":"wolf"),i+1,world),x,y};
+ });
+ const state={units:group,nextId:201};
+ for(let tick=0;tick<30;tick++)core.update(state,1/60,world,[]);
+ assert.equal(state.units.length,200,"idle stress fixture should retain every unit");
+ for(const unit of state.units){
+   assert.ok(Number.isFinite(unit.x)&&Number.isFinite(unit.y),"unit coordinates should remain finite");
+   assert.ok(unit.x>=unit.radius&&unit.x<=world.width-unit.radius);
+   assert.ok(unit.y>=unit.radius&&unit.y<=world.height-unit.radius);
+ }
+});
