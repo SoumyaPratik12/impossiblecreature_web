@@ -95,8 +95,8 @@
     else {const cols=Math.ceil(Math.sqrt(count)),rows=Math.ceil(count/cols);for(let i=0;i<count;i++)offsets.push({x:(i%cols-(Math.min(cols,count)-1)/2)*spacing,y:(Math.floor(i/cols)-(rows-1)/2)*spacing});}
     return offsets;
   }
-  function attackTargetFor(unit,units,enemyTeam) {
-    const enemies=units.filter(candidate=>candidate.team===enemyTeam&&candidate.hp>0);
+  function attackTargetFor(unit,units,enemyTeam,maxRange=Infinity) {
+    const enemies=units.filter(candidate=>candidate.team===enemyTeam&&candidate.hp>0&&distance(unit,candidate)<=maxRange);
     if(!enemies.length)return null;
     const counts=new Map(enemies.map(enemy=>[enemy.id,units.filter(other=>other.hp>0&&other.team===unit.team&&other.attackTargetId===enemy.id).length]));
     const least=Math.min(...counts.values());
@@ -121,7 +121,7 @@
     const offset=((target.id*1103515245)>>>0)%orderedEnemies.length;
     orderedAttackers.forEach((unit,index)=>{
       const chosen=orderedEnemies[(index+offset)%orderedEnemies.length];
-      unit.attackTargetId=chosen.id;unit.moveOrder=true;unit.path=[];unit.pathIndex=0;unit.stuckTime=0;
+      unit.attackTargetId=chosen.id;unit.attackCommand=true;unit.moveOrder=true;unit.path=[];unit.pathIndex=0;unit.stuckTime=0;
     });
     return true;
   }
@@ -228,8 +228,10 @@
       let enemy=units.find(e=>e.id===u.attackTargetId&&e.team!==u.team&&e.hp>0)||null;
       if(u.attackTargetId&&!enemy){u.attackTargetId=null;u.path=[];u.pathIndex=0;u.attackRepathTimer=0;}
       if(!enemy){
-        enemy=attackTargetFor(u,units,units.find(candidate=>candidate.team!==u.team&&candidate.hp>0)?.team);
+        const enemyTeam=units.find(candidate=>candidate.team!==u.team&&candidate.hp>0)?.team;
+        enemy=enemyTeam?attackTargetFor(u,units,enemyTeam,u.attackCommand?Infinity:125):null;
         if(enemy){u.attackTargetId=enemy.id;u.attackRepathTimer=0;u.path=[];u.pathIndex=0;}
+        else if(u.attackCommand){u.attackCommand=false;u.moveOrder=false;}
       }
       let waypoint=null;
       if(enemy){
