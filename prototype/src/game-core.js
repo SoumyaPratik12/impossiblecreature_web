@@ -110,18 +110,19 @@
     if(!target||target.hp<=0)return false;
     const enemyTeam=target.team;
     const attackers=units.filter(unit=>unit!==target&&unit.hp>0&&unit.team!==enemyTeam);
-    if(!attackers.length)return false;
-    // Reset the group first, then distribute in a deterministic shuffled order.
+    const enemies=units.filter(candidate=>candidate.team===enemyTeam&&candidate.hp>0);
+    if(!attackers.length||!enemies.length)return false;
     for(const unit of attackers){unit.attackTargetId=null;unit.attackRepathTimer=0;unit.attackTargetX=NaN;unit.attackTargetY=NaN;}
-    const ordered=attackers.slice().sort((a,b)=>{
-      const ha=(a.id*2654435761)>>>0,hb=(b.id*2654435761)>>>0;
-      return ha-hb;
-    });
-    for(const unit of ordered){
-      const chosen=attackTargetFor(unit,units,enemyTeam);
-      if(!chosen)continue;
+    const stableOrder=(a,b)=>(((a.id*2654435761)>>>0)-((b.id*2654435761)>>>0));
+    const orderedAttackers=attackers.slice().sort(stableOrder);
+    const orderedEnemies=enemies.slice().sort(stableOrder);
+    // A deterministic shuffle-like ordering plus round-robin guarantees balanced
+    // distribution while still varying which creature starts on each target.
+    const offset=((target.id*1103515245)>>>0)%orderedEnemies.length;
+    orderedAttackers.forEach((unit,index)=>{
+      const chosen=orderedEnemies[(index+offset)%orderedEnemies.length];
       unit.attackTargetId=chosen.id;unit.moveOrder=true;unit.path=[];unit.pathIndex=0;unit.stuckTime=0;
-    }
+    });
     return true;
   }
   function issueFormationMove(units,x,y,world,formation="compact",obstacles=DEFAULT_OBSTACLES) {
