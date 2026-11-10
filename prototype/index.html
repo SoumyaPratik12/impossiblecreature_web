@@ -6,12 +6,13 @@
   <meta name="theme-color" content="#101820">
   <meta name="description" content="An original browser-based RTS sandbox prototype.">
   <title>Impossible Creatures — Browser Prototype</title>
-  <link rel="stylesheet" href="./style.css?v=20261110-8">
-  <script src="./src/world-view.js?v=20261110-8" defer></script>
-  <script src="./src/game-core.js?v=20261110-8" defer></script>
-  <script src="./src/creature-catalog.js?v=20261110-8" defer></script>
-  <script src="./src/webgpu-renderer.js?v=20261110-8" defer></script>
-  <script src="./src/main.js?v=20261110-8" defer></script>
+  <link rel="stylesheet" href="./style.css?v=20261110-9">
+  <script src="./src/world-view.js?v=20261110-9" defer></script>
+  <script src="./src/game-core.js?v=20261110-9" defer></script>
+  <script src="./src/rts-systems.js?v=20261110-9" defer></script>
+  <script src="./src/creature-catalog.js?v=20261110-9" defer></script>
+  <script src="./src/webgpu-renderer.js?v=20261110-9" defer></script>
+  <script src="./src/main.js?v=20261110-9" defer></script>
 
 </head>
 <body>
@@ -46,6 +47,7 @@
             Your browser does not support the canvas element.
           </canvas>
         </div>
+        <div class="economy-bar"><span id="economy-status" aria-live="polite">Wood 260 · Ore 220</span></div>
         <div class="field-footer">
           <span id="selection-status" aria-live="polite">No unit selected</span>
           <span id="game-status" aria-live="polite">Simulation running</span>
@@ -64,7 +66,12 @@
           <p id="creature-preview" class="muted">Wolf body / Wolf head</p>
         </div>
         <div class="control-group">
-          <button id="spawn-button" class="button button-primary" type="button">Spawn composed creature</button>
+          <label for="difficulty-select">Difficulty</label><select id="difficulty-select"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select>
+          <button id="gather-button" class="button button-secondary" type="button">Gather nearest resource</button>
+          <button id="turret-button" class="button button-secondary" type="button">Build defensive turret (100 wood / 80 ore)</button>
+          <button id="barracks-button" class="button button-secondary" type="button">Build barracks (150 wood / 110 ore)</button>
+          <button id="train-button" class="button button-primary" type="button">Queue creature (55 wood / 35 ore)</button>
+          <button id="spawn-button" class="button button-quiet" type="button">Debug spawn creature</button>
           <button id="save-button" class="button button-secondary" type="button">Save state</button>
           <button id="load-button" class="button button-secondary" type="button">Load state</button>
           <button id="reset-button" class="button button-quiet" type="button">Reset arena</button>
@@ -83,7 +90,9 @@
             <li>Units automatically engage nearby opponents, including while moving (attack-move).</li>
             <li>Space + drag or middle-mouse drag to pan the camera.</li>
             <li>Scroll to zoom around your pointer, or use the zoom controls.</li>
-            <li>Use Save state to store a local prototype snapshot.</li>
+            <li>Select units and use Gather nearest resource to collect wood or ore. Build turrets and barracks near your base, then queue creatures.</li>
+            <li>Destroy the enemy base to win; protect your own base. Difficulty changes enemy economy and defensive fire.</li>
+            <li>Use Save state to store a local prototype snapshot. RTS economy and buildings are not yet included in save files.</li>
           </ul>
         </div>
         <p class="disclaimer">Original prototype only. Not an executable port of the commercial game.</p>
