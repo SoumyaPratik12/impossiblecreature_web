@@ -241,3 +241,18 @@ test("group attack orders distribute creatures across multiple enemies",()=>{
  assert.ok(enemies.every((enemy,index)=>enemy.hp<before[index]),
    "all enemy targets should receive simultaneous damage from their assigned attackers");
 });
+
+test("group attackers retarget living enemies when an assigned target is eliminated",()=>{
+ const enemies=[1,2,3].map((id,i)=>({...core.createUnit("enemy",520+i*260,440,catalog.compose("wolf","wolf"),30+id,world)}));
+ const attackers=Array.from({length:6},(_,i)=>({...core.createUnit("player",280+i*28,350+(i%2)*38,catalog.compose("bear","bear"),i+1,world)}));
+ const state={units:[...attackers,...enemies],nextId:40};
+ assert.equal(core.issueAttackTarget(attackers,enemies[0],world,[],state.units),true);
+ const eliminatedId=attackers[0].attackTargetId;
+ const eliminated=enemies.find(enemy=>enemy.id===eliminatedId);
+ eliminated.hp=0;
+ core.update(state,1/60,world,[]);
+ assert.ok(attackers.every(unit=>state.units.some(enemy=>enemy.id===unit.attackTargetId&&enemy.team==="enemy"&&enemy.hp>0)),
+   "every attacker should have a living enemy target after reassignment");
+ assert.ok(attackers.some(unit=>unit.attackTargetId!==eliminatedId),
+   "attackers assigned to the eliminated target should switch to a living enemy");
+});
