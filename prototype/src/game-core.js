@@ -136,6 +136,24 @@
       if(pointBlocked(x,y,radius,world,obstacles))return false;}
     return true;
   }
+  function tryYieldForTraffic(unit,units,world,obstacles) {
+    const dx=unit.targetX-unit.x,dy=unit.targetY-unit.y,len=Math.hypot(dx,dy);
+    if(len<1)return false;
+    const px=-dy/len,py=dx/len,side=(unit.yieldSide||((unit.id%2)?1:-1));
+    const offset=Math.max(44,unit.radius*2+14);
+    for(const sign of [side,-side]){
+      const candidate={x:unit.x+px*offset*sign,y:unit.y+py*offset*sign};
+      if(pointBlocked(candidate.x,candidate.y,unit.radius,world,obstacles))continue;
+      if(units.some(other=>other!==unit&&other.hp>0&&distance(candidate,other)<unit.radius+other.radius+8))continue;
+      if(!segmentClear(unit,candidate,unit.radius,world,obstacles))continue;
+      const route=findPath(candidate,{x:unit.targetX,y:unit.targetY},world,obstacles,40,unit.radius);
+      if(!route.length)continue;
+      unit.path=[candidate,...route];unit.pathIndex=0;unit.yieldSide=-sign;
+      unit.yieldCount=(unit.yieldCount||0)+1;unit.stuckTime=0;
+      return true;
+    }
+    return false;
+  }
   function recoverStalledUnit(unit,units,world,obstacles) {
     const target={x:unit.targetX,y:unit.targetY},dx=target.x-unit.x,dy=target.y-unit.y,len=Math.hypot(dx,dy);
     if(len<1)return false;
@@ -197,6 +215,14 @@
         if(!pointBlocked(xOnly.x,xOnly.y,u.radius,world,obstacles)){px=xOnly.x;py=xOnly.y;}
         else if(!pointBlocked(yOnly.x,yOnly.y,u.radius,world,obstacles)){px=yOnly.x;py=yOnly.y;}
         else {px=u.x;py=u.y;}
+      }
+      // Reserve space in deterministic unit-ID order. A higher-ID unit yields
+      // laterally when its next step would enter a lower-ID unit's clearance radius.
+      const trafficBlocker=units.find(other=>other!==u&&other.hp>0&&
+        distance({x:px,y:py},other)<u.radius+other.radius+7);
+      if(trafficBlocker){
+        if(u.id>trafficBlocker.id)tryYieldForTraffic(u,units,world,obstacles);
+        px=u.x;py=u.y;
       }
       const beforeMove={x:u.x,y:u.y};
       u.x=px;u.y=py;
@@ -267,5 +293,5 @@
     if(raw.nextId<=Math.max(0,...ids))throw new Error("Invalid next unit ID");
     return {units,nextId:raw.nextId,camera:{x:raw.camera.x,y:raw.camera.y,zoom:raw.camera.zoom}};
   }
-  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueFormationMove,formationOffsets,findPath,pointBlocked,nearestWalkable,findSpawn,recoverStalledUnit,update,snapshot,validateSave};
+  window.CreatureGameCore={SAVE_VERSION,DEFAULT_OBSTACLES,createUnit,createInitialState,issueMove,issueFormationMove,formationOffsets,findPath,pointBlocked,nearestWalkable,findSpawn,recoverStalledUnit,tryYieldForTraffic,update,snapshot,validateSave};
 })();
